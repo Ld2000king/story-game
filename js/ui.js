@@ -1,6 +1,5 @@
 // ממשק: רינדור סצנות וקרבות, הסברי סיכון, נשקייה, פאנל דמות, שמירה וגלריית סופים.
 
-const SAVE_KEY = 'arena-save-v1';
 const ENDINGS_KEY = 'arena-endings-v1';
 const ALL_ENDINGS = Object.values(SCENES).filter((sc) => sc.ending && !sc.teaser);
 
@@ -42,13 +41,23 @@ function migrate(s) {
 
 // ---------- פתיחה ----------
 
+function canContinue(entry) {
+  if (!entry || !SCENES[entry.state.scene]) return false;
+  const sc = SCENES[entry.state.scene];
+  return !sc.ending || sc.teaser;
+}
+
 function showStart() {
   $('game').hidden = true;
   $('start').hidden = false;
   document.body.classList.remove('moon3', 'panel-open');
-  const save = store(SAVE_KEY);
-  $('continue-btn').hidden = !(save && SCENES[save.scene] && !SCENES[save.scene].ending);
-  if (save) $('continue-btn').textContent = `להמשיך את המשחק של ${save.name}`;
+  const db = readDB();
+  const auto = db.auto;
+  $('continue-btn').hidden = !canContinue(auto);
+  if (auto) $('continue-btn').textContent = `להמשיך את המשחק של ${auto.meta.name} · ${auto.meta.chapter} (${timeAgo(auto.time)})`;
+  const warn = $('storage-warn-start');
+  warn.hidden = storageOK;
+  warn.textContent = STORAGE_WARNING;
   const n = foundEndings().length;
   $('endings-count').textContent = n ? `גילית ${n} מתוך ${ALL_ENDINGS.length} סופים` : `${ALL_ENDINGS.length} סופים שונים מחכים לך`;
 }
@@ -62,19 +71,32 @@ $('start-form').addEventListener('submit', (e) => {
   startGame();
 });
 
+const STORAGE_WARNING = '⚠️ הדפדפן הזה חוסם שמירה (למשל: דפדפן בתוך וואטסאפ/אינסטגרם, או גלישה בסתר). ההתקדמות תישמר רק עד שתסגור את הדף. כדי לא לאבד אותה — פתח את המשחק בכרום/ספארי רגיל, או שמור "קוד שמירה" בחלון 💾.';
+
 $('continue-btn').addEventListener('click', () => {
-  const save = store(SAVE_KEY);
-  if (!save) return;
-  state = migrate(save);
-  startGame();
+  const entry = readDB().auto;
+  if (!entry) return;
+  loadGame(loadEntry(entry));
 });
 
+function loadGame(st) {
+  state = migrate(st);
+  if ($('saves').open) $('saves').close();
+  startGame();
+}
+
 $('restart-btn').addEventListener('click', () => {
-  if (SCENES[state.scene].ending || confirm('להתחיל משחק חדש? ההתקדמות הנוכחית תימחק.')) {
-    store(SAVE_KEY, null);
-    showStart();
+  const sc = SCENES[state.scene];
+  if (sc.ending || confirm('לחזור למסך הפתיחה? המשחק הנוכחי שמור — אפשר להמשיך אותו, או לטעון נקודת שמירה בחלון 💾.')) {
+    probeStorage();
+showStart();
   }
 });
+
+$('saves-btn').addEventListener('click', openSaves);
+$('save-indicator').addEventListener('click', () => { if (!storageOK) openSaves(); });
+$('saves-start-btn').addEventListener('click', openSaves);
+$('saves-close').addEventListener('click', () => $('saves').close());
 
 $('toggle-panel').addEventListener('click', () => document.body.classList.toggle('panel-open'));
 $('shop-btn').addEventListener('click', openShop);
@@ -104,8 +126,7 @@ function render(keepScroll) {
   const sc = SCENES[state.scene];
   $('shop-btn').disabled = inBattle || !!sc.ending;
   renderPanel();
-  if (sc.ending) store(SAVE_KEY, null);
-  else store(SAVE_KEY, state);
+  persist();
   if (!keepScroll) window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -451,6 +472,114 @@ function battleSummary(b) {
   </div>`.replace(/\{([^{}|]*)\|([^{}|]*)\}/g, (_, m, fm) => (state.gender === 'f' ? fm : m));
 }
 
+// ---------- שמירה ----------
+
+let indicatorTimer = null;
+
+function persist() {
+  const ok = autosave(state);
+  const el = $('save-indicator');
+  if (!el) return;
+  el.className = 'save-indicator ' + (ok ? 'ok' : 'bad');
+  el.textContent = ok ? '✔ נשמר' : '⚠️ לא נשמר';
+  el.title = ok ? 'המשחק נשמר אוטומטית' : STORAGE_WARNING;
+  clearTimeout(indicatorTimer);
+  if (ok) indicatorTimer = setTimeout(() => { el.textContent = ''; }, 1600);
+}
+
+function entryCard(entry, actions) {
+  const m = entry.meta;
+  return `<div class="item save-entry">
+    <div class="i-name">${esc(entry.label)} <span class="muted">· ${esc(timeAgo(entry.time))}</span></div>
+    <div class="i-desc">${esc(m.name)} · ${esc(m.chapter)}<br>${esc(m.title)}</div>
+    <div class="i-stats"><span>❤ ${m.hp}/${m.maxHp}</span><span>🪙 ${m.gold}</span><span>👥 ${m.team}</span><span>🌙 עונה ${Math.min(m.season, 3)}</span></div>
+    <div class="i-buy">${actions}</div>
+  </div>`;
+}
+
+function openSaves() {
+  renderSaves();
+  $('saves').showModal();
+}
+
+function renderSaves(msg) {
+  const db = readDB();
+  const inGame = !!state && !$('game').hidden;
+  const html = [];
+  if (!storageOK) html.push(`<div class="warn">${esc(STORAGE_WARNING)}</div>`);
+  if (msg) html.push(`<div class="tip ok-msg">${esc(msg)}</div>`);
+  html.push('<p class="muted">המשחק נשמר אוטומטית אחרי כל בחירה. בנוסף נשמרות נקודות שמירה בתחילת כל פרק ולפני כל קרב — כדי שאפשר יהיה לחזור אחורה ולנסות אחרת.</p>');
+
+  html.push('<h3 class="sv-h">שמירה אוטומטית</h3>');
+  html.push(db.auto ? `<div class="items">${entryCard(db.auto, `<button class="btn small" data-load="auto">טעינה</button>`)}</div>` : '<p class="muted">אין עדיין.</p>');
+
+  html.push('<h3 class="sv-h">משבצות שמירה</h3><div class="items">');
+  db.slots.forEach((e, i) => {
+    const saveBtn = inGame ? `<button class="btn small ghost" data-save="${i}">${e ? 'לשמור כאן (דריסה)' : 'לשמור כאן'}</button>` : '';
+    if (e) html.push(entryCard(e, `<button class="btn small" data-slot="${i}">טעינה</button>${saveBtn}<button class="btn small ghost" data-del="${i}">מחיקה</button>`));
+    else html.push(`<div class="item save-entry empty"><div class="i-name">משבצת ${i + 1}</div><div class="i-desc">ריקה</div><div class="i-buy">${saveBtn || '<span class="muted">אפשר לשמור מתוך המשחק</span>'}</div></div>`);
+  });
+  html.push('</div>');
+
+  html.push('<h3 class="sv-h">נקודות שמירה אוטומטיות</h3>');
+  if (db.checkpoints.length) {
+    html.push(`<div class="items">${db.checkpoints.map((e, i) => entryCard(e, `<button class="btn small" data-cp="${i}">לחזור לכאן</button>`)).join('')}</div>`);
+  } else {
+    html.push('<p class="muted">אין עדיין.</p>');
+  }
+
+  html.push('<h3 class="sv-h">קוד שמירה — להעברה למכשיר או דפדפן אחר</h3>');
+  if (inGame) {
+    html.push(`<div class="code-box"><textarea id="export-code" readonly rows="3">${esc(exportCode(state))}</textarea>
+      <div class="i-buy"><button class="btn small" id="copy-code">📋 להעתיק קוד</button><button class="btn small ghost" id="download-code">⬇️ להוריד כקובץ</button></div></div>`);
+  }
+  html.push(`<div class="code-box"><textarea id="import-code" rows="3" placeholder="להדביק כאן קוד שמירה (מתחיל ב־ARENA1:)"></textarea>
+    <div class="i-buy"><button class="btn small" id="import-btn">📥 לטעון מקוד</button><label class="btn small ghost file-btn">📂 לטעון מקובץ<input type="file" id="import-file" accept=".txt,text/plain" hidden></label></div>
+    <div id="import-err" class="warn" hidden></div></div>`);
+
+  $('saves-body').innerHTML = html.join('');
+  const body = $('saves-body');
+  const confirmLoad = () => !inGame || confirm('לטעון? ההתקדמות הנוכחית נשמרת בשמירה האוטומטית עד הבחירה הבאה.');
+  body.querySelectorAll('[data-load]').forEach((el) => el.addEventListener('click', () => { if (confirmLoad()) loadGame(loadEntry(db.auto)); }));
+  body.querySelectorAll('[data-slot]').forEach((el) => el.addEventListener('click', () => { if (confirmLoad()) loadGame(loadEntry(db.slots[+el.dataset.slot])); }));
+  body.querySelectorAll('[data-cp]').forEach((el) => el.addEventListener('click', () => { if (confirmLoad()) loadGame(loadEntry(db.checkpoints[+el.dataset.cp])); }));
+  body.querySelectorAll('[data-save]').forEach((el) => el.addEventListener('click', () => {
+    const i = +el.dataset.save;
+    if (db.slots[i] && !confirm(`לדרוס את משבצת ${i + 1}?`)) return;
+    const ok = saveToSlot(state, i);
+    renderSaves(ok ? `נשמר במשבצת ${i + 1}.` : 'השמירה נכשלה — הדפדפן חוסם שמירה. השתמש בקוד שמירה.');
+  }));
+  body.querySelectorAll('[data-del]').forEach((el) => el.addEventListener('click', () => {
+    if (confirm(`למחוק את משבצת ${+el.dataset.del + 1}?`)) { deleteSlot(+el.dataset.del); renderSaves(); }
+  }));
+  const copy = $('copy-code');
+  if (copy) copy.addEventListener('click', async () => {
+    const ta = $('export-code');
+    try { await navigator.clipboard.writeText(ta.value); } catch (e) { ta.select(); document.execCommand('copy'); }
+    copy.textContent = '✔ הועתק';
+  });
+  const dl = $('download-code');
+  if (dl) dl.addEventListener('click', () => {
+    const blob = new Blob([$('export-code').value], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `arena-${state.name}-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  const showErr = (m) => { const e = $('import-err'); e.hidden = false; e.textContent = m; };
+  $('import-btn').addEventListener('click', () => {
+    try { loadGame(importCode($('import-code').value)); } catch (e) { showErr('הקוד לא תקין. ודא שהעתקת את כולו.'); }
+  });
+  $('import-file').addEventListener('change', (ev) => {
+    const file = ev.target.files[0];
+    if (!file) return;
+    file.text().then((txt) => {
+      try { loadGame(importCode(txt)); } catch (e) { showErr('הקובץ לא מכיל קוד שמירה תקין.'); }
+    });
+  });
+}
+
 // ---------- נשקייה ----------
 
 let shopTab = 'weapon';
@@ -502,7 +631,7 @@ function afterShop() {
   renderPanel();
   // הסיכויים בבחירות תלויים בציוד
   if (!state.battle) renderScene();
-  store(SAVE_KEY, state);
+  persist();
 }
 
 // ---------- סוף ----------
@@ -568,7 +697,7 @@ function renderPanel() {
     <li class="combat"><span>⚔️ פגיעה +${pAttackBonus(s)}</span><span>🛡️ הגנה ${pDefense(s, null, false)}</span>${s.power ? `<span>${POWERS[s.power].icon} ${maxCharges(s)} מטענים</span>` : ''}</li>`;
   const drink = $('drink-btn');
   drink.hidden = !s.inv.potion || !!s.battle || s.hp >= s.maxHp;
-  drink.onclick = () => { drinkPotion(s); note(s, 'שתית שיקוי ריפוי', 'up'); renderPanel(); store(SAVE_KEY, s); };
+  drink.onclick = () => { drinkPotion(s); note(s, 'שתית שיקוי ריפוי', 'up'); renderPanel(); persist(); };
 
   $('crew').innerHTML = Object.keys(s.crew)
     .sort((a, b) => (s.crew[a].status === 'team' ? 0 : 1) - (s.crew[b].status === 'team' ? 0 : 1))

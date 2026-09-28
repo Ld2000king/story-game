@@ -31,6 +31,8 @@
         <button class="btn primary" type="submit">להיכנס לזירה</button>
       </form>
       <button id="continue-btn" class="btn ghost" hidden>להמשיך משחק שמור</button>
+      <button id="saves-start-btn" class="btn ghost">💾 טעינה ושמירות</button>
+      <p id="storage-warn-start" class="storage-warn" hidden></p>
       <p id="endings-count" class="endings-count"></p>
     </div>
   </section>
@@ -40,10 +42,12 @@
     <header class="topbar">
       <div class="brand">ארנה</div>
       <div id="chapter" class="chapter"></div>
+      <span id="save-indicator" class="save-indicator" aria-live="polite"></span>
       <div class="top-actions">
+        <button id="saves-btn" class="icon-btn" title="שמירה וטעינה">💾</button>
         <button id="shop-btn" class="icon-btn" title="הנשקייה — ציוד">🛡️</button>
         <button id="toggle-panel" class="icon-btn" title="דמות וקבוצה">👤</button>
-        <button id="restart-btn" class="icon-btn" title="משחק חדש">↺</button>
+        <button id="restart-btn" class="icon-btn" title="מסך הפתיחה — משחק חדש">🏠</button>
       </div>
     </header>
 
@@ -96,11 +100,20 @@
     <div id="shop-body"></div>
   </dialog>
 
+  <dialog id="saves" class="shop">
+    <div class="shop-head">
+      <h2>💾 שמירה וטעינה</h2>
+      <button id="saves-close" class="icon-btn" title="סגירה">✕</button>
+    </div>
+    <div id="saves-body"></div>
+  </dialog>
+
   <script src="js/core.js"></script>
   <script src="js/battle.js"></script>
   <script src="js/story.js"></script>
   <script src="js/story2.js"></script>
   <script src="js/endings.js"></script>
+  <script src="js/saves.js"></script>
   <script src="js/ui.js"></script>
 </body>
 </html>
