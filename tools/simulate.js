@@ -6,7 +6,7 @@ const vm = require('vm');
 
 const root = path.join(__dirname, '..');
 const ctx = vm.createContext({ console });
-for (const f of ['js/core.js', 'js/battle.js', 'js/story.js', 'js/story2.js', 'js/story3.js', 'js/endings.js', 'js/dark.js']) {
+for (const f of ['js/core.js', 'js/battle.js', 'js/story.js', 'js/story2.js', 'js/story3.js', 'js/endings.js', 'js/dark.js', 'js/light.js']) {
   vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), ctx, { filename: f });
 }
 const G = ctx;

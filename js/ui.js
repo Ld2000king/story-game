@@ -672,6 +672,7 @@ function renderEnding(sc, box) {
       <div class="name">${esc(sc.title)}</div>
       <div class="found">גילית ${found.length} מתוך ${ALL_ENDINGS.length} סופים</div>
       <div class="ending-list">${list}</div>
+      ${romanceEpilogue(state) ? `<div class="memorial romance">${f(romanceEpilogue(state))}</div>` : ''}
       ${memorial()}
       <button class="btn primary" id="again">לשחק שוב — ולבחור אחרת</button>
     </div>`;

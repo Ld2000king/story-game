@@ -377,3 +377,4 @@ b.r { color: var(--down); }
 .ally-fallen { color: #ff6b6b; text-decoration: line-through; }
 .crew li.dead .who { color: var(--muted); }
 .memorial { color: #d9a0a0; font-size: 0.92rem; margin: 0 0 16px; }
+.memorial.romance { color: #f0a8c8; }

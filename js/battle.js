@@ -463,6 +463,12 @@ function battleAct(s, action, arg) {
     }
     if (e.hp <= 0) return endRound(s, 'win');
   }
+  // צ׳יפס הלטאה מתערב לפעמים
+  if (has(s, 'mascot') && rng() < 0.15) {
+    const real = dealToEnemy(b, 1, false);
+    b.log.push({ t: 'ally', text: `🦎 צ׳יפס קופץ מהכיס ונושך את ${e.name} באף. ${real} נזק. הקהל מת מצחוק.` });
+    if (e.hp <= 0) return endRound(s, 'win');
+  }
 
   if (b.stoneSkin > 0) b.stoneSkin--;
   b.round++;

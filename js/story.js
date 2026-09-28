@@ -299,7 +299,7 @@ scene('s1_fight1_win', {
 "${POWERS[s.power].name}!" צועק הכרוז סלבר מהמרפסת, והקהל חוזר אחריו. "לילד{|ה} החדש{|ה} יש כוח! ראיתם? ראיתם?!"
 
 גרום מחכה לכם ביציאה. הוא לא מחייך, אבל הוא מהנהן. אצלו זה כמעט חיבוק.`,
-  choices: [{ text: 'לחזור לצריף', next: 's1_shira' }],
+  choices: [{ text: 'לחזור לצריף', next: 's1_bonfire' }],
 });
 
 scene('s1_fight1_lose', {
@@ -610,21 +610,21 @@ ${has(s, 'itayConfession') ? 'איתי לא מסתכל {עליך|עלייך}. {�
   choices: [
     {
       text: 'לשכנע את איתי להישאר',
-      check: { stat: 'influence', dc: 13, bonus: (s) => trust(s, 'itay'), label: 'לשכנע את איתי' },
+      check: { stat: 'influence', dc: 13, bonus: (s) => trust(s, 'itay') + (s.flags.romance === 'itay' ? 3 : 0), label: 'לשכנע את איתי' },
       onSuccess: (s) => setFlag(s, 'kept', 'itay'),
       success: 's1_varkas_after',
       fail: 's1_varkas_after',
     },
     {
       text: 'לשכנע את מאיה להישאר',
-      check: { stat: 'influence', dc: 13, bonus: (s) => trust(s, 'maya'), label: 'לשכנע את מאיה' },
+      check: { stat: 'influence', dc: 13, bonus: (s) => trust(s, 'maya') + (s.flags.romance === 'maya' ? 3 : 0), label: 'לשכנע את מאיה' },
       onSuccess: (s) => setFlag(s, 'kept', 'maya'),
       success: 's1_varkas_after',
       fail: 's1_varkas_after',
     },
     {
       text: 'לשכנע את דניאל להישאר',
-      check: { stat: 'influence', dc: 13, bonus: (s) => trust(s, 'daniel'), label: 'לשכנע את דניאל' },
+      check: { stat: 'influence', dc: 13, bonus: (s) => trust(s, 'daniel') + (s.flags.romance === 'daniel' ? 3 : 0), label: 'לשכנע את דניאל' },
       onSuccess: (s) => setFlag(s, 'kept', 'daniel'),
       success: 's1_varkas_after',
       fail: 's1_varkas_after',
@@ -736,7 +736,7 @@ scene('s1_regroup', {
     {
       text: 'לא לגייס אף אחד — להתאמן כפול, יומם ולילה',
       effect: (s) => { addStat(s, mainStat(s), 1); powerUp(s, 1); },
-      next: 's1_final',
+      next: 's1_eve',
     },
   ],
 });
@@ -749,7 +749,7 @@ scene('s1_recruit_kira', {
 "אתם, הנשאבים, תמיד חושבים שאתם במקום הכי גרוע," היא אומרת. "אתם לפחות יודעים שיש מקום אחר."
 
 היא לוחצת לך את היד. "אני נלחמת איתך. אבל כשתמצא{|י} את הדרך הביתה — תספר{|י} לי איך זה, שם."`,
-  choices: [{ text: 'להתכונן לחצי הגמר', next: 's1_final' }],
+  choices: [{ text: 'להתכונן לחצי הגמר', next: 's1_eve' }],
 });
 
 scene('s1_recruit_ziv', {
@@ -762,7 +762,7 @@ scene('s1_recruit_ziv', {
 הוא לא מגזים. כשהוא רץ, האוויר מאחוריו מתפצח כמו רעם קטן. גרום מסתכל עליו רגע ארוך ואומר רק: "סוף-סוף מישהו שלא צריך ללמד לזוז."
 
 היכולת של זיו בקרב: מטח ברק — פוגע גם ביריב שעף, ומפיל אותו לקרקע.`,
-  choices: [{ text: 'להתכונן לחצי הגמר', next: 's1_final' }],
+  choices: [{ text: 'להתכונן לחצי הגמר', next: 's1_eve' }],
 });
 
 scene('s1_recruit_borg', {
@@ -773,7 +773,7 @@ scene('s1_recruit_borg', {
 רק בערב, ליד המדורה, הוא אומר מילה אחת בקול עמוק של מערה: "תודה."
 
 נועה נשענת עליו כמו על קיר. הוא לא זז כל הלילה, כדי לא להעיר אותה.`,
-  choices: [{ text: 'להתכונן לחצי הגמר', next: 's1_final' }],
+  choices: [{ text: 'להתכונן לחצי הגמר', next: 's1_eve' }],
 });
 
 scene('s1_recruit_yoav', {
@@ -786,7 +786,7 @@ scene('s1_recruit_yoav', {
 הוא שותק. ואז: "גם אצלי שלושה הלכו. ורקס קנה אותם באותו לילה." הוא מושיט יד. "טוב. אבל אם מישהו מספר לחבר'ה בבית שהצטרפתי לנשאבים, אני מכחיש."
 
 רק שירה לא מצטרפת. "לי יש משהו אחר לעשות," היא אומרת, ונעלמת.`,
-  choices: [{ text: 'להתכונן לחצי הגמר', next: 's1_final' }],
+  choices: [{ text: 'להתכונן לחצי הגמר', next: 's1_eve' }],
 });
 
 scene('s1_final', {

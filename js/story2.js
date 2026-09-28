@@ -72,7 +72,7 @@ scene('s2a_start', {
     {
       text: 'להתאמן עם גרום על הכוח שלך, עד הקצה',
       effect: (s) => { powerUp(s, 1); addStat(s, mainStat(s), 1); },
-      next: 's2a_secret',
+      next: 's2a_festival',
     },
     {
       text: 'לחפש את שירה, שנעלמה מאז חצי הגמר',
@@ -157,7 +157,7 @@ scene('s2a_shira', {
 "והאלופים?"
 
 "האלופים לא חוזרים הביתה. הם יורדים ללב, והלב שותה אותם עד הסוף." היא מסתכלת {עליך|עלייך}. "${has(s, 'shiraBrother') ? 'ואני חושבת שאלון עוד לא ירד. אני חושבת שהוא עדיין נלחם. אני פשוט לא יודעת איפה.' : 'יש לוחם אחד שניצח עשר עונות ברציפות ועדיין לא ירד. אני רוצה לדעת למה.'}"`,
-  choices: [{ text: 'לחזור לזירה, עם הסוד', next: 's2a_secret' }],
+  choices: [{ text: 'לחזור לזירה, עם הסוד', next: 's2a_festival' }],
 });
 
 scene('s2a_visit', {
@@ -174,12 +174,12 @@ ${names(soldIds(s))} ישנים בחדר מפואר עם וילונות משי. 
     {
       text: '"אני אוציא אתכם מפה. אני מבטיח{|ה}."',
       effect: (s) => setFlag(s, 'friendsPlot'),
-      next: 's2a_secret',
+      next: 's2a_festival',
     },
     {
       text: 'לקחת בשקט קצת מהאבקה, כדי להבין מה זה',
       effect: (s) => { setFlag(s, 'hasDust'); addStat(s, 'spirit', 1); },
-      next: 's2a_secret',
+      next: 's2a_festival',
     },
   ],
 });
@@ -191,7 +191,7 @@ scene('s2a_visit_fail', {
   text: `הכלבים של ורקס מריחים אותך לפני שאת{ה|} מגיע{|ה} לחלון. {אתה בורח|את בורחת} דרך הגינה עם שיניים בשוק, ומדמם{|מת} כל הדרך חזרה לצריף.
 
 למחרת בבוקר מגיע מכתב חתום בחותם זהב. יש בו רק שורה אחת: "בפעם הבאה, אני שולח את הכלבים לצריף שלך."`,
-  choices: [{ text: 'לחבוש את הפצע ולהמשיך', next: 's2a_secret' }],
+  choices: [{ text: 'לחבוש את הפצע ולהמשיך', next: 's2a_festival' }],
 });
 
 scene('s2a_secret', {
@@ -571,20 +571,20 @@ scene('s2s_varkas', {
       text: 'לתכנן בסתר עם החברים — יום אחד כולנו יוצאים',
       show: (s) => soldIds(s).length > 0,
       effect: (s) => { setFlag(s, 'friendsPlot'); soldIds(s).forEach((id) => addTrust(s, id, 2)); },
-      next: 's2s_intrigue',
+      next: 's2s_party',
     },
     {
       text: 'לרגל אחרי ורקס בלילות',
       check: { stat: 'agility', dc: 12, label: 'ריגול בבית ורקס' },
       onSuccess: (s) => setFlag(s, 'varkasSecrets'),
-      success: 's2s_intrigue',
+      success: 's2s_party',
       onFail: (s) => addHp(s, -3),
-      fail: 's2s_intrigue',
+      fail: 's2s_party',
     },
     {
       text: 'להתחנף לורקס ולטפס בדרגות',
       effect: (s) => { addStat(s, 'influence', 2); addGold(s, 10); setFlag(s, 'varkasFavor'); },
-      next: 's2s_intrigue',
+      next: 's2s_party',
     },
   ],
 });
@@ -605,16 +605,16 @@ scene('s2s_herald', {
       text: 'לעזור לרונית להעתיק את המפתח בזמן שהוא ישן',
       check: { stat: 'agility', dc: 12, bonus: (s) => (has(s, 'ronitAlly') ? 2 : 0), label: 'העתקת המפתח' },
       onSuccess: (s) => setFlag(s, 'crystalKey'),
-      success: 's2s_intrigue',
+      success: 's2s_party',
       onFail: (s) => { addHp(s, -2); setFlag(s, 'selvarWatching'); },
-      fail: 's2s_intrigue',
+      fail: 's2s_party',
     },
     {
       text: 'להתקרב לסלבר עצמו, להפוך למשרת האהוב עליו',
       check: { stat: 'influence', dc: 13, label: 'לזכות באמון הכרוז' },
       onSuccess: (s) => { setFlag(s, 'selvarTrust'); addGold(s, 10); },
-      success: 's2s_intrigue',
-      fail: 's2s_intrigue',
+      success: 's2s_party',
+      fail: 's2s_party',
     },
   ],
 });
@@ -632,12 +632,12 @@ scene('s2s_archive', {
     {
       text: 'לגנוב את מפת הכוכבים העתיקה של הארכיון',
       effect: (s) => setFlag(s, 'starChart'),
-      next: 's2s_intrigue',
+      next: 's2s_party',
     },
     {
       text: 'ללמוד לעומק את הקריסטל מתחת לזירה',
       effect: (s) => { setFlag(s, 'crystalKnown'); addStat(s, 'spirit', 1); },
-      next: 's2s_intrigue',
+      next: 's2s_party',
     },
   ],
 });
