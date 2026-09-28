@@ -32,7 +32,7 @@ ${team.length ? `לידך: ${names(team)}.` : '{אתה לבד|את לבד}.'}${s
     {
       text: s.season === 1 ? '⚔️ להמשיך להילחם בארנה' : '⚔️ לחזור לחול לעונה האחרונה — ליל שלושת הירחים',
       effect: (st) => { st.season += 1; st.path = 'arena'; },
-      next: (st) => (st.season === 2 ? 's2a_start' : 's3a_start'),
+      next: (st) => (st.season === 2 ? 's2a_start' : 's3_teaser'),
     },
     {
       text: s.path === 'servant' ? '🔗 להישאר משרת{|ת} ולבנות לעצמך מקום בעולם הזה' : '🔗 להפוך למשרת{|ת} באחד הבתים הגדולים',
@@ -714,7 +714,7 @@ ${has(s, 'caughtOnce')
           st.path = 'arena';
           st.hp = Math.max(st.hp, 5);
         },
-        next: (st) => (st.season === 2 ? 's2a_start' : 's3a_start'),
+        next: (st) => (st.season === 2 ? 's2a_start' : 's3_teaser'),
       },
   ],
 });

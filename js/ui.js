@@ -2,7 +2,7 @@
 
 const SAVE_KEY = 'arena-save-v1';
 const ENDINGS_KEY = 'arena-endings-v1';
-const ALL_ENDINGS = Object.values(SCENES).filter((sc) => sc.ending);
+const ALL_ENDINGS = Object.values(SCENES).filter((sc) => sc.ending && !sc.teaser);
 
 const $ = (id) => document.getElementById(id);
 let state = null;
@@ -150,6 +150,17 @@ function renderRoll() {
 }
 
 function renderEnding(sc, box) {
+  if (sc.teaser) {
+    box.innerHTML = `
+    <div class="ending-banner">
+      <div class="label">סוף עונה 2</div>
+      <div class="name">המשך יבוא</div>
+      <div class="found">עונה 3 עדיין בכתיבה. בינתיים אפשר לחזור ולנסות מסלול אחר: משרת, בריחה, או להציל את החברים.</div>
+      <button class="btn primary" id="again">לשחק שוב — ולבחור אחרת</button>
+    </div>`;
+    $('again').addEventListener('click', showStart);
+    return;
+  }
   const found = foundEndings();
   if (!found.includes(sc.id)) {
     found.push(sc.id);
