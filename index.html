@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ארנה — משחק סיטואציות</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=Heebo:wght@400;500;700&display=swap">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="sky" aria-hidden="true"><span class="moon m1"></span><span class="moon m2"></span></div>
+
+  <!-- מסך פתיחה -->
+  <section id="start" class="screen">
+    <div class="start-card">
+      <p class="eyebrow">משחק סיפור וסיטואציות</p>
+      <h1 class="logo">ארנה</h1>
+      <p class="tagline">הכיתה שלך נשאבה לעולם אחר. עכשיו כולכם לוחמים.<br>כל בחירה משנה את ההמשך.</p>
+
+      <form id="start-form" autocomplete="off">
+        <label class="field">
+          <span>איך קוראים לך?</span>
+          <input id="player-name" maxlength="16" placeholder="השם שלך" required>
+        </label>
+        <fieldset class="field gender">
+          <legend>לפנות אליך כ...</legend>
+          <label><input type="radio" name="gender" value="m" checked><span>לוחם</span></label>
+          <label><input type="radio" name="gender" value="f"><span>לוחמת</span></label>
+        </fieldset>
+        <button class="btn primary" type="submit">להיכנס לזירה</button>
+      </form>
+      <button id="continue-btn" class="btn ghost" hidden>להמשיך משחק שמור</button>
+      <p id="endings-count" class="endings-count"></p>
+    </div>
+  </section>
+
+  <!-- מסך משחק -->
+  <section id="game" class="screen" hidden>
+    <header class="topbar">
+      <div class="brand">ארנה</div>
+      <div id="chapter" class="chapter"></div>
+      <div class="top-actions">
+        <button id="toggle-panel" class="icon-btn" title="דמות וקבוצה">👤</button>
+        <button id="restart-btn" class="icon-btn" title="משחק חדש">↺</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <main class="story">
+        <div id="roll" class="roll" hidden></div>
+        <div id="notes" class="notes"></div>
+        <h2 id="scene-title" class="scene-title"></h2>
+        <div id="scene-text" class="scene-text"></div>
+        <div id="choices" class="choices"></div>
+      </main>
+
+      <aside id="panel" class="panel">
+        <div class="card hero">
+          <div id="hero-name" class="hero-name"></div>
+          <div id="hero-power" class="hero-power"></div>
+          <div class="bar"><div id="hp-bar" class="bar-fill"></div><span id="hp-text"></span></div>
+          <div class="res">
+            <span title="זהב">🪙 <b id="gold"></b></span>
+            <span title="מוניטין">⭐ <b id="fame"></b></span>
+            <span title="עונה">🌙 <b id="season"></b></span>
+          </div>
+        </div>
+        <div class="card">
+          <h3>תכונות</h3>
+          <ul id="stats" class="stats"></ul>
+        </div>
+        <div class="card">
+          <h3>הקבוצה</h3>
+          <ul id="crew" class="crew"></ul>
+        </div>
+      </aside>
+    </div>
+  </section>
+
+  <script src="js/core.js"></script>
+  <script src="js/story.js"></script>
+  <script src="js/story2.js"></script>
+  <script src="js/story3.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>
