@@ -22,8 +22,12 @@ const COMPANIONS = {
   daniel: { name: 'דניאל', role: 'גנב צללים', f: false },
   kira: { name: 'קירה', role: 'לוחמת ילידת אורדן', f: true },
   borg: { name: 'בורג', role: 'ענק אבן', f: false },
-  yoav: { name: 'יואב', role: 'בריון לשעבר', f: false },
+  yoav: { name: 'יואב', role: 'כשף אדמה', f: false },
   alon: { name: 'אלון', role: 'הקצב האפור', f: false },
+  ziv: { name: 'זיו', role: 'מהירות הברק', f: false },
+  iris: { name: 'איריס', role: 'רוכבת הרוח — תעופה', f: true },
+  rena: { name: 'רנה', role: 'משנת צורה', f: true },
+  goren: { name: 'גורן', role: 'כשף אדמה', f: false },
 };
 
 const STATUS_NAMES = {
@@ -44,6 +48,11 @@ function newState(name, gender) {
     hp: 12,
     maxHp: 12,
     gold: 5,
+    gear: { weapon: 'club', armor: null, trinket: null },
+    owned: ['club'],
+    inv: { potion: 0, smoke: 0, net: 0 },
+    battle: null,
+    lastBattle: null,
     fame: 0,
     power: null,
     powerLevel: 0,
@@ -288,6 +297,10 @@ function choose(s, c) {
   s.lastRoll = null;
   s.steps++;
   if (c.effect) c.effect(s);
+  if (c.battle) {
+    startBattle(s, c.battle, { win: c.win, lose: c.lose, mods: c.mods ? c.mods(s) : null });
+    return;
+  }
   let next;
   if (c.check) {
     const ok = rollCheck(s, c.check);
@@ -319,11 +332,47 @@ function guardDeath(s, next) {
   return 'end_death';
 }
 
+// תצוגה מקדימה: מה יקרה אם הבחירה תצליח / תיכשל (מריץ על עותק של המצב)
+function previewOutcome(s, c, ok) {
+  const t = JSON.parse(JSON.stringify(s));
+  t.notes = [];
+  try {
+    if (c.effect) c.effect(t);
+    let next;
+    if (c.check) {
+      if (ok) { if (c.onSuccess) c.onSuccess(t); next = resolveNext(t, c.success); }
+      else { if (c.onFail) c.onFail(t); next = resolveNext(t, c.fail); }
+    } else if (c.battle) {
+      next = resolveNext(t, ok ? c.win : c.lose);
+    } else {
+      next = resolveNext(t, c.next);
+    }
+    const sc = SCENES[next];
+    if (sc && sc.enter) sc.enter(t);
+    return { notes: t.notes, scene: sc, hp: t.hp };
+  } catch (e) {
+    return { notes: [], scene: null, hp: s.hp };
+  }
+}
+
+// פירוק של בדיקת קוביות לחלקים, להסבר לשחקן
+function checkBreakdown(s, c) {
+  const statKey = c.stat === 'main' ? mainStat(s) : c.stat;
+  const parts = [{ label: STAT_NAMES[statKey], v: s.stats[statKey] }];
+  if (s.power && POWERS[s.power].stat === statKey) parts.push({ label: POWERS[s.power].name, v: s.powerLevel });
+  if (c.team && teamBonus(s)) parts.push({ label: 'הקבוצה', v: teamBonus(s) });
+  const extra = c.bonus ? c.bonus(s) : 0;
+  if (extra) parts.push({ label: 'נסיבות', v: extra });
+  const base = parts.reduce((n, p) => n + p.v, 0);
+  const need = c.dc - base;
+  return { statKey, parts, base, need, dc: c.dc, pct: checkOdds(s, c) };
+}
+
 const api = {
   STAT_NAMES, POWERS, COMPANIONS, STATUS_NAMES, BOUGHT,
   newState, note, addStat, addHp, addMaxHp, healFull, addGold, addFame, addTrust, trustTeam,
   setFlag, has, trust, inTeam, isSold, teamIds, soldIds, teamCount, names, joinCrew, setStatus,
   setPower, powerUp, mainStat, closestSold, fmt, setRng, rollCheck, checkOdds, teamBonus,
-  sceneText, visibleChoices, isAvailable, choose, enterScene,
+  sceneText, visibleChoices, isAvailable, choose, enterScene, resolveNext, guardDeath, previewOutcome, checkBreakdown, d6,
 };
 Object.assign(globalThis, api);

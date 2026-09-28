@@ -41,6 +41,7 @@
       <div class="brand">ארנה</div>
       <div id="chapter" class="chapter"></div>
       <div class="top-actions">
+        <button id="shop-btn" class="icon-btn" title="הנשקייה — ציוד">🛡️</button>
         <button id="toggle-panel" class="icon-btn" title="דמות וקבוצה">👤</button>
         <button id="restart-btn" class="icon-btn" title="משחק חדש">↺</button>
       </div>
@@ -48,11 +49,15 @@
 
     <div class="layout">
       <main class="story">
-        <div id="roll" class="roll" hidden></div>
-        <div id="notes" class="notes"></div>
-        <h2 id="scene-title" class="scene-title"></h2>
-        <div id="scene-text" class="scene-text"></div>
-        <div id="choices" class="choices"></div>
+        <div id="scene-view">
+          <div id="roll" class="roll" hidden></div>
+          <div id="last-battle" class="roll" hidden></div>
+          <div id="notes" class="notes"></div>
+          <h2 id="scene-title" class="scene-title"></h2>
+          <div id="scene-text" class="scene-text"></div>
+          <div id="choices" class="choices"></div>
+        </div>
+        <div id="battle-view" hidden></div>
       </main>
 
       <aside id="panel" class="panel">
@@ -71,6 +76,11 @@
           <ul id="stats" class="stats"></ul>
         </div>
         <div class="card">
+          <h3>ציוד</h3>
+          <ul id="gear" class="gear"></ul>
+          <button id="drink-btn" class="btn small ghost" hidden>🧪 לשתות שיקוי ריפוי (+6)</button>
+        </div>
+        <div class="card">
           <h3>הקבוצה</h3>
           <ul id="crew" class="crew"></ul>
         </div>
@@ -78,7 +88,16 @@
     </div>
   </section>
 
+  <dialog id="shop" class="shop">
+    <div class="shop-head">
+      <h2>🛡️ הנשקייה של גרום</h2>
+      <button id="shop-close" class="icon-btn" title="סגירה">✕</button>
+    </div>
+    <div id="shop-body"></div>
+  </dialog>
+
   <script src="js/core.js"></script>
+  <script src="js/battle.js"></script>
   <script src="js/story.js"></script>
   <script src="js/story2.js"></script>
   <script src="js/endings.js"></script>
