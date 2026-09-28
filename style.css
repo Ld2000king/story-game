@@ -359,3 +359,21 @@ b.r { color: var(--down); }
 .file-btn { cursor: pointer; }
 .ok-msg { color: var(--up); }
 #saves-start-btn { margin-top: 10px; }
+
+/* ---------- אבדות ---------- */
+.story.dark {
+  background: linear-gradient(180deg, rgba(20, 8, 12, 0.97), rgba(12, 6, 10, 0.98));
+  border-color: rgba(160, 40, 50, 0.35);
+  box-shadow: 0 20px 60px rgba(90, 0, 10, 0.35);
+}
+.story.dark .scene-title { color: #d9a0a0; }
+.story.dark .scene-text p { color: #d8ccd0; }
+.story.dark .scene-text p.quote { border-color: rgba(200, 60, 70, 0.5); }
+.lline.l-dead { color: #ff6b6b; font-weight: 700; }
+.chip.dead { color: #ff8b8b; border-color: rgba(255, 90, 90, 0.5); background: rgba(120, 10, 20, 0.3); }
+.warn.dead { background: rgba(90, 0, 10, 0.35); border-color: rgba(255, 90, 90, 0.45); }
+.ally-hurt { color: var(--gold); }
+.ally-out { color: var(--down); }
+.ally-fallen { color: #ff6b6b; text-decoration: line-through; }
+.crew li.dead .who { color: var(--muted); }
+.memorial { color: #d9a0a0; font-size: 0.92rem; margin: 0 0 16px; }

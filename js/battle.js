@@ -127,7 +127,7 @@ const ENEMIES = {
 
 // יכולות של חברי הקבוצה — פעם אחת בכל קרב, במקום התור שלך
 const ALLY_SKILLS = {
-  noa: { name: 'אור מרפא', desc: 'מרפאה אותך ב־5 חיים.' },
+  noa: { name: 'אור מרפא', desc: 'מרפאה אותך ב־5 חיים ומנקה את הפצעים של כל הקבוצה.' },
   itay: { name: 'מכת חנית', desc: '5 נזק ליריב.' },
   maya: { name: 'לחשוף חולשה', desc: 'הגנת היריב 3− עד סוף הקרב.' },
   daniel: { name: 'הסחת דעת', desc: 'היריב מפסיד את התור הבא.' },
@@ -142,6 +142,39 @@ const ALLY_SKILLS = {
 };
 
 // ---------- מהלך הקרב ----------
+
+// חברי קבוצה שעדיין עומדים בקרב הזה
+function activeAllies(s, b) {
+  return teamIds(s).filter((id) => !(b.out || []).includes(id));
+}
+
+const ALLY_FALL_TEXT = {
+  hurt: (n, f) => `💢 ${n} ${f ? 'נפגעת' : 'נפגע'} מהמכה — פצע ראשון.`,
+  out: (n, f) => `🩸 ${n} ${f ? 'נופלת' : 'נופל'} על החול ולא ${f ? 'קמה' : 'קם'}. מחוץ לקרב.`,
+  dead: (n, f) => `☠️ ${n} ${f ? 'נופלת' : 'נופל'} על החול. הדם לא מפסיק. ${f ? 'היא' : 'הוא'} לא ${f ? 'קמה' : 'קם'} יותר.`,
+};
+
+// מכה חזקה שלא נחסמה עלולה לפגוע בחבר בקבוצה. שני פצעים — מחוץ לקרב. בליגת הדם — מוות.
+function hurtAlly(s, b, chance) {
+  if (b.solo) return;
+  const allies = activeAllies(s, b);
+  if (!allies.length || rng() >= chance) return;
+  const id = allies[Math.floor(rng() * allies.length)];
+  const n = COMPANIONS[id].name;
+  const f = COMPANIONS[id].f;
+  b.wounds[id] = (b.wounds[id] || 0) + 1;
+  if (b.wounds[id] < 2) {
+    b.log.push({ t: 'bad', text: ALLY_FALL_TEXT.hurt(n, f) });
+    return;
+  }
+  b.out.push(id);
+  if (b.deadly) {
+    b.fallen.push(id);
+    b.log.push({ t: 'dead', text: ALLY_FALL_TEXT.dead(n, f) });
+  } else {
+    b.log.push({ t: 'bad', text: ALLY_FALL_TEXT.out(n, f) });
+  }
+}
 
 function startBattle(s, enemyId, opt) {
   const base = ENEMIES[enemyId];
@@ -177,6 +210,9 @@ function startBattle(s, enemyId, opt) {
     commands: 0,
     finisher: false,
     log: [],
+    wounds: {},
+    out: [],
+    fallen: [],
     over: null,
     mods: mods.label || '',
   };
@@ -216,6 +252,15 @@ function enemyDef(b) {
 
 // תיאור הכוונה של היריב לתור הקרוב, כולל מספרים
 function intentInfo(s, b) {
+  const base = intentInfoBase(s, b);
+  const risk = { heavy: 40, dive: 40, flurry: 30, quake: 50 }[b.intent];
+  if (risk && !b.solo && activeAllies(s, b).length) {
+    base.text += ` ⚠️ ${risk}% שאחד החברים ייפגע, אם לא {תתגונן|תתגונני}.${b.deadly ? ' פצע שני — בליגת הדם זה מוות.' : ''}`;
+  }
+  return base;
+}
+
+function intentInfoBase(s, b) {
   const e = b.e;
   const def = pDefense(s, b, false);
   const hitPct = (bonus) => pct2d6(def - (e.atk + bonus));
@@ -354,7 +399,14 @@ function battleAct(s, action, arg) {
     const hitAlly = (dmg) => dealToEnemy(b, dmg, false);
     let text = '';
     switch (id) {
-      case 'noa': { const h = Math.min(5, s.maxHp - s.hp); s.hp += h; text = `${h} חיים חזרו אליך.`; break; }
+      case 'noa': {
+        const h = Math.min(5, s.maxHp - s.hp);
+        s.hp += h;
+        const healed = Object.keys(b.wounds).filter((w) => b.wounds[w] > 0 && !b.out.includes(w));
+        healed.forEach((w) => { b.wounds[w] = 0; });
+        text = `${h} חיים חזרו אליך${healed.length ? `, והפצעים של ${names(healed)} נסגרו` : ''}.`;
+        break;
+      }
       case 'itay': case 'kira': text = `${hitAlly(5)} נזק.`; break;
       case 'alon': text = `${hitAlly(7)} נזק.`; break;
       case 'rena': text = `${n} הופכת לדוב ענק: ${hitAlly(6)} נזק.`; break;
@@ -389,17 +441,24 @@ function battleAct(s, action, arg) {
 
   // ----- התור של היריב -----
   enemyTurn(s, b, defending);
+  // מכות חזקות מסכנות גם את הקבוצה, אלא אם השחקן התגונן או שהמכה נחסמה
+  if (!defending && !b.lastBlocked) {
+    const risk = { heavy: 0.4, dive: 0.4, flurry: 0.3, quake: 0.5 }[b.intent] || 0;
+    if (risk) hurtAlly(s, b, risk);
+  }
+  b.lastBlocked = false;
   if (s.hp <= 0) return endRound(s, 'ko');
 
   // ----- הקבוצה -----
   if (!b.solo) {
-    const team = teamCount(s);
+    const allies = activeAllies(s, b);
+    const team = allies.length;
     if (team && b.intent !== 'quake') {
       let dmg = team;
       if (b.airborne > 0) dmg = Math.floor(dmg / 2);
       if (dmg > 0) {
         const real = dealToEnemy(b, dmg, false);
-        b.log.push({ t: 'ally', text: `👥 הקבוצה (${names(teamIds(s))}) תוקפת: ${real} נזק${b.airborne > 0 ? ' (חצי — הוא באוויר)' : ''}.` });
+        b.log.push({ t: 'ally', text: `👥 הקבוצה (${names(allies)}) תוקפת: ${real} נזק${b.airborne > 0 ? ' (חצי — הוא באוויר)' : ''}.` });
       }
     }
     if (e.hp <= 0) return endRound(s, 'win');
@@ -427,6 +486,7 @@ function enemyTurn(s, b, defending) {
     }
     if (b.block) {
       b.block = false;
+      b.lastBlocked = true;
       b.log.push({ t: 'good', text: `🪨 חומת האבן של בורג חוסמת את המכה.` });
       return;
     }
@@ -530,6 +590,8 @@ function finishBattle(s) {
   s.lastBattle = { enemy: b.e.name, won: o.won, why: o.why, gold: o.gold };
   if (o.gold) addGold(s, o.gold);
   let next = o.won ? b.win : b.lose;
+  const fallen = b.fallen || [];
+  fallen.forEach((id) => setStatus(s, id, 'dead'));
   s.battle = null;
   if (o.why === 'ko') {
     if (b.deadly) {
@@ -540,6 +602,7 @@ function finishBattle(s) {
       note(s, '{נגררת|נגררת} מהזירה עם 1 חיים', 'down');
     }
   }
+  if (fallen.length) next = queueGrief(s, fallen, next);
   enterScene(s, next);
 }
 
@@ -548,7 +611,9 @@ function finishBattle(s) {
 // מדיניות פשוטה של "שחקן סביר", לשימוש בהדמיות
 function autoAction(s, b) {
   if (s.hp <= 5 && s.inv.potion) return ['item', 'potion'];
-  const avail = teamIds(s).filter((id) => ALLY_SKILLS[id] && !b.used.includes(id));
+  const avail = activeAllies(s, b).filter((id) => ALLY_SKILLS[id] && !b.used.includes(id));
+  const wounded = Object.values(b.wounds).some((w) => w === 1);
+  if (!b.solo && wounded && ['heavy', 'dive', 'quake'].includes(b.intent)) return ['defend'];
   if (!b.solo && avail.length && b.round >= 2) return ['ally', avail[0]];
   if (b.charges > 0 && b.intent !== 'defend' && b.intent !== 'stunned' && b.e.ability !== 'crystal') return ['power'];
   if ((b.intent === 'heavy' || b.intent === 'dive' || b.intent === 'flurry') && s.hp <= e_dmg(b) * 2) return ['defend'];
@@ -591,6 +656,6 @@ function estimateBattle(s, enemyId, mods, runs) {
 const battleApi = {
   ITEMS, SLOT_NAMES, ENEMIES, ABILITIES, ALLY_SKILLS,
   gearItem, weapon, gearSum, buyItem, equipItem, drinkPotion, pAttackBonus, pPowerBonus, pDefense, pSoak, maxCharges,
-  startBattle, battleAct, finishBattle, intentInfo, actionInfo, enemyDef, pct2d6, estimateBattle, autoAction, cloneState,
+  startBattle, battleAct, activeAllies, finishBattle, intentInfo, actionInfo, enemyDef, pct2d6, estimateBattle, autoAction, cloneState,
 };
 Object.assign(globalThis, battleApi);

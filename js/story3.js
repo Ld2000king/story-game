@@ -82,14 +82,26 @@ scene('s3a_ambush_win', {
 
 scene('s3a_ambush_lose', {
   title: 'דם על הקש',
+  darkIf: (s) => !!s.flags.ambushVictim,
   chapter: 'עונה 3 — הגמר הגדול',
-  enter: (s) => addHp(s, 3),
-  text: (s) => `להב נכנס לך בצד, והחושך מסתחרר.
+  enter: (s) => {
+    addHp(s, 3);
+    const v = pickVictim(s);
+    s.flags.ambushVictim = v;
+    if (v) setStatus(s, v, 'dead');
+  },
+  text: (s) => `להב נכנס לך בצד, והחושך מסתחרר.${s.flags.ambushVictim ? `
+
+הדבר האחרון {שאתה שומע|שאת שומעת} הוא ${COMPANIONS[s.flags.ambushVictim].name} ${COMPANIONS[s.flags.ambushVictim].f ? 'צועקת' : 'צועק'} "לכו!", ואת הדלת של הצריף נטרקת. ${COMPANIONS[s.flags.ambushVictim].f ? 'היא נשארה' : 'הוא נשאר'} בפנים, לבד מול המתנקשים, כדי שכל השאר יספיקו לברוח.
+
+בבוקר מוצאים ${COMPANIONS[s.flags.ambushVictim].f ? 'אותה' : 'אותו'} ליד הדלת. עדיין עומד${COMPANIONS[s.flags.ambushVictim].f ? 'ת' : ''}, נשען${COMPANIONS[s.flags.ambushVictim].f ? 'ת' : ''} על המשקוף. שלוש מסכות שחורות על הרצפה מסביב.` : ''}
 
 {אתה מתעורר|את מתעוררת} כעבור יום שלם. ${inTeam(s, 'noa') ? 'נועה יושבת לידך, עם עיגולים שחורים מתחת לעיניים. "לא ישנתי," היא אומרת. "לא העזתי."' : inTeam(s, 'borg') ? 'בורג יושב בפתח הצריף, והגב שלו מלא חתכים. הוא לא זז משם כל הלילה.' : 'גרום יושב ליד המזרן שלך עם בקבוק. "המתנקשים ברחו," הוא אומר. "אבל גם {אתה לא מת|את לא מתה}. בעיר הזאת זה נחשב ניצחון."'}
 
 הפצע ייסגר. אבל חצי הגמר מתקיים בעוד יומיים.`,
-  choices: [{ text: 'לקום, למרות הכאב', next: 's3a_semis' }],
+  choices: (s) => (s.flags.ambushVictim
+    ? memorialChoices('s3a_semis').map((c) => ({ ...c, text: c.text.replace('בחול הזירה', 'מאחורי הצריף') }))
+    : [{ text: 'לקום, למרות הכאב', next: 's3a_semis' }]),
 });
 
 scene('s3a_semis', {

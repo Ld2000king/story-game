@@ -6,7 +6,7 @@ const vm = require('vm');
 
 const root = path.join(__dirname, '..');
 const ctx = vm.createContext({ console });
-for (const f of ['js/core.js', 'js/battle.js', 'js/story.js', 'js/story2.js', 'js/story3.js', 'js/endings.js']) {
+for (const f of ['js/core.js', 'js/battle.js', 'js/story.js', 'js/story2.js', 'js/story3.js', 'js/endings.js', 'js/dark.js']) {
   vm.runInContext(fs.readFileSync(path.join(root, f), 'utf8'), ctx, { filename: f });
 }
 const G = ctx;
@@ -35,6 +35,8 @@ const endings = {};
 const visited = new Set();
 let maxSteps = 0;
 const battleStats = {};
+const fallenHist = {};
+const fallenWho = {};
 let smartDeaths = 0;
 
 for (let i = 0; i < runs; i++) {
@@ -76,6 +78,11 @@ for (let i = 0; i < runs; i++) {
       checkText(s, s.scene, G.sceneText(s, sc));
       const ch = typeof sc.chapter === 'function' ? sc.chapter(s) : sc.chapter;
       if (sc.ending) {
+        if (smart) {
+          const fl = G.fallenIds(s);
+          fallenHist[fl.length] = (fallenHist[fl.length] || 0) + 1;
+          fl.forEach((id) => { fallenWho[id] = (fallenWho[id] || 0) + 1; });
+        }
         endings[s.scene] = (endings[s.scene] || 0) + 1;
         if (smart && s.scene === 'end_death') smartDeaths++;
         break;
@@ -107,6 +114,7 @@ const unvisited = Object.keys(SCENES).filter((id) => !visited.has(id));
 const uniq = [...new Set(errors)];
 console.log(`סצנות: ${Object.keys(SCENES).length}, משחקים: ${runs}, מקסימום צעדים: ${maxSteps}`);
 console.log('סופים:', endings);
+console.log('חברים שמתו במשחק (זהירים):', fallenHist, fallenWho);
 console.log(`מוות אצל שחקנים זהירים: ${((smartDeaths / (runs * 2 / 3)) * 100).toFixed(1)}%`);
 for (const [k, v] of Object.entries(battleStats)) console.log(`קרב ${k.padEnd(12)} ניצחונות ${Math.round((v.w / v.n) * 100)}%  זהב ממוצע ${(v.gold / v.n).toFixed(1)}  (${v.n})`);
 if (unvisited.length) console.log('סצנות שלא בוקרו:', unvisited.join(', '));

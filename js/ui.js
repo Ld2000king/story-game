@@ -115,6 +115,8 @@ function render(keepScroll) {
   story.classList.remove('fade');
   void story.offsetWidth;
   story.classList.add('fade');
+  const cur = SCENES[state.scene];
+  story.classList.toggle('dark', !state.battle && !!(cur.dark || (cur.darkIf && cur.darkIf(state))));
   document.body.classList.toggle('moon3', state.season >= 3);
 
   const inBattle = !!state.battle;
@@ -363,7 +365,14 @@ function renderBattle() {
     </div>
   </div>`);
   if (!b.solo && teamCount(s)) {
-    html.push(`<div class="team-strip">👥 ${esc(names(teamIds(s)))} — ${teamCount(s)} נזק אוטומטי בכל תור${b.airborne > 0 ? ' (חצי כשהיריב באוויר)' : ''}</div>`);
+    const act = activeAllies(s, b);
+    const who = teamIds(s).map((id) => {
+      const w = b.wounds[id] || 0;
+      if (b.fallen.includes(id)) return `<span class="ally-fallen">☠️ ${esc(COMPANIONS[id].name)}</span>`;
+      if (b.out.includes(id)) return `<span class="ally-out">🩸 ${esc(COMPANIONS[id].name)}</span>`;
+      return `<span class="${w ? 'ally-hurt' : ''}">${esc(COMPANIONS[id].name)}${w ? ' 💢' : ''}</span>`;
+    }).join(' · ');
+    html.push(`<div class="team-strip">👥 ${who} — ${act.length} נזק אוטומטי בכל תור${b.airborne > 0 ? ' (חצי כשהיריב באוויר)' : ''}</div>`);
   } else if (b.solo) {
     html.push('<div class="team-strip">👤 דו־קרב: הקבוצה צופה מהגדר.</div>');
   }
@@ -380,6 +389,7 @@ function renderBattle() {
         <li><b>ההגנה שלך:</b> 8 + זריזות + שריון. היריב מטיל שתי קוביות + ההתקפה שלו מולה. השריון סופג חלק מהנזק.</li>
         <li><b>התגוננות:</b> +4 הגנה בתור הזה, הנזק שמגיע אליך נחצה, ואם הוא מחטיא — מכת נגד של 2.</li>
         <li><b>הקבוצה:</b> כל חבר בקבוצה מוסיף 1 נזק אוטומטי בכל תור. פקודה לחבר מפעילה את היכולת המיוחדת שלו (פעם בקרב), במקום התור שלך.</li>
+        <li><b>להגן על החברים:</b> מכה כבדה, צלילה, מטח או רעידת אדמה עלולות לפגוע באחד החברים — אלא אם התגוננת באותו תור, או שבורג חסם. פצע ראשון: 💢. פצע שני: החבר מחוץ לקרב. <b>בליגת הדם (עונה 2 ו־3), פצע שני הוא מוות — לתמיד.</b> נועה יכולה לנקות פצעים.</li>
         <li><b>ניצחון:</b> החיים של היריב מגיעים ל־0. <b>הפסד:</b> החיים שלך מגיעים ל־0, או שנכנעת.</li>
         <li><b>אחרי ${b.maxRounds} תורות:</b> השופטים מכריעים — מי שנשאר לו אחוז חיים גבוה יותר, מנצח.</li>
         <li><b>זהב:</b> 30% מהפרס על עצם הניצחון, ו־70% לפי ההשפעה שלך: הנזק שלך + 2 על כל הגנה על הקבוצה + 1 על כל פקודה, מתוך כל מה שנעשה בקרב. מכת הסיום שווה 2 בונוס. בהפסד מקבלים 25% מהפרס לפי ההשפעה. בכניעה — כלום.</li>
@@ -411,7 +421,7 @@ function renderActions() {
   }
   add('🛡️ התגוננות', '+4 הגנה, חצי נזק, מכת נגד 2 אם הוא מחטיא', () => battleAct(s, 'defend'));
   if (!b.solo) {
-    teamIds(s).filter((id) => ALLY_SKILLS[id]).forEach((id) => {
+    activeAllies(s, b).filter((id) => ALLY_SKILLS[id]).forEach((id) => {
       const used = b.used.includes(id);
       const sk = ALLY_SKILLS[id];
       add(`📣 ${COMPANIONS[id].name}: ${sk.name}`, used ? 'כבר נוצל בקרב הזה' : sk.desc + ' (במקום התור שלך)', () => battleAct(s, 'ally', id), used, 'ally');
@@ -467,6 +477,8 @@ function battleSummary(b) {
       ${o.lines.map((l) => `<tr><td colspan="2">🪙 ${esc(l)}</td></tr>`).join('')}
       <tr class="strong"><td>סה"כ זהב</td><td>🪙 ${o.gold}</td></tr>
     </table>
+    ${b.fallen.length ? `<div class="warn dead">☠️ בקרב הזה נפלו: <b>${esc(names(b.fallen))}</b>. הם לא יחזרו.</div>` : ''}
+    ${b.out.filter((id) => !b.fallen.includes(id)).length ? `<div class="tip">🩸 נפצעו קשה ויצאו מהקרב: ${esc(names(b.out.filter((id) => !b.fallen.includes(id))))}. הם יתאוששו.</div>` : ''}
     ${o.why === 'ko' ? `<div class="warn">${b.deadly ? 'ליגת הדם: {נפלת|נפלת} בלי להיכנע.' : 'יגררו אותך מהזירה עם 1 חיים.'}</div>` : ''}
     <button class="btn primary" id="battle-continue">המשך</button>
   </div>`.replace(/\{([^{}|]*)\|([^{}|]*)\}/g, (_, m, fm) => (state.gender === 'f' ? fm : m));
@@ -660,9 +672,16 @@ function renderEnding(sc, box) {
       <div class="name">${esc(sc.title)}</div>
       <div class="found">גילית ${found.length} מתוך ${ALL_ENDINGS.length} סופים</div>
       <div class="ending-list">${list}</div>
+      ${memorial()}
       <button class="btn primary" id="again">לשחק שוב — ולבחור אחרת</button>
     </div>`;
   $('again').addEventListener('click', showStart);
+}
+
+function memorial() {
+  const dead = fallenIds(state);
+  if (!dead.length) return '<div class="memorial">אף אחד מהקבוצה שלך לא נפל. זה נדיר בארנה.</div>';
+  return `<div class="memorial">🕯️ לזכרם: <b>${esc(names(dead))}</b></div>`;
 }
 
 // ---------- פאנל ----------
@@ -708,7 +727,7 @@ function renderPanel() {
       const sk = ALLY_SKILLS[id];
       return `<li class="${c.status}" title="${sk ? esc(sk.name + ': ' + sk.desc) : ''}">
         <span class="avatar">${info.name[0]}</span>
-        <span class="who">${info.name}<small>${c.status === 'team' ? info.role + (sk ? ' · ' + sk.name : '') : STATUS_NAMES[c.status]}</small></span>
+        <span class="who">${c.status === 'dead' ? '🕯️ ' : ''}${info.name}<small>${c.status === 'team' ? info.role + (sk ? ' · ' + sk.name : '') : c.status === 'dead' ? (info.f ? 'נפלה' : 'נפל') : STATUS_NAMES[c.status]}</small></span>
         <span class="hearts" title="אמון ${c.trust}">${hearts}</span>
       </li>`;
     })

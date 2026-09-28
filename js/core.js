@@ -326,10 +326,33 @@ function guardDeath(s, next) {
   if (inTeam(s, 'noa') && !has(s, 'noaSaved')) {
     setFlag(s, 'noaSaved');
     s.hp = 5;
+    if (s.season >= 2) {
+      // בליגת הדם, האור של נועה לא מספיק. היא נותנת את החיים שלה.
+      setFlag(s, 'noaSacrifice');
+      setStatus(s, 'noa', 'dead');
+      note(s, 'נועה נתנה לך את החיים שלה', 'dead');
+      return queueGrief(s, ['noa'], next);
+    }
     note(s, 'נועה הצילה את חייך ברגע האחרון (פעם אחת בלבד)', 'power');
     return next;
   }
   return 'end_death';
+}
+
+// מעבר לסצנת האבל אחרי מוות של חבר, ומשם להמשך המתוכנן
+function queueGrief(s, ids, next) {
+  if (next === 'end_death') return next;
+  if (next === 'grief') {
+    s.flags.lastFallen = [...(s.flags.lastFallen || []), ...ids];
+    return 'grief';
+  }
+  s.flags.lastFallen = ids;
+  s.pendingNext = next;
+  return 'grief';
+}
+
+function fallenIds(s) {
+  return Object.keys(s.crew).filter((id) => s.crew[id].status === 'dead');
 }
 
 // תצוגה מקדימה: מה יקרה אם הבחירה תצליח / תיכשל (מריץ על עותק של המצב)
@@ -373,6 +396,6 @@ const api = {
   newState, note, addStat, addHp, addMaxHp, healFull, addGold, addFame, addTrust, trustTeam,
   setFlag, has, trust, inTeam, isSold, teamIds, soldIds, teamCount, names, joinCrew, setStatus,
   setPower, powerUp, mainStat, closestSold, fmt, setRng, rollCheck, checkOdds, teamBonus,
-  sceneText, visibleChoices, isAvailable, choose, enterScene, resolveNext, guardDeath, previewOutcome, checkBreakdown, d6,
+  sceneText, visibleChoices, isAvailable, choose, enterScene, resolveNext, guardDeath, queueGrief, fallenIds, previewOutcome, checkBreakdown, d6,
 };
 Object.assign(globalThis, api);

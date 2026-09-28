@@ -76,6 +76,7 @@ scene('end_home_all', {
 
 scene('end_death', {
   ending: true,
+  dark: true,
   title: 'נפלת בחול',
   text: (s) => `הקהל שואג. אבל {אתה כבר לא שומע|את כבר לא שומעת}.
 
