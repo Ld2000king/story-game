@@ -253,7 +253,7 @@ function enemyDef(b) {
 // תיאור הכוונה של היריב לתור הקרוב, כולל מספרים
 function intentInfo(s, b) {
   const base = intentInfoBase(s, b);
-  const risk = { heavy: 40, dive: 40, flurry: 30, quake: 50 }[b.intent];
+  const risk = { heavy: 25, dive: 25, flurry: 20, quake: 30 }[b.intent];
   if (risk && !b.solo && activeAllies(s, b).length) {
     base.text += ` ⚠️ ${risk}% שאחד החברים ייפגע, אם לא {תתגונן|תתגונני}.${b.deadly ? ' פצע שני — בליגת הדם זה מוות.' : ''}`;
   }
@@ -443,7 +443,7 @@ function battleAct(s, action, arg) {
   enemyTurn(s, b, defending);
   // מכות חזקות מסכנות גם את הקבוצה, אלא אם השחקן התגונן או שהמכה נחסמה
   if (!defending && !b.lastBlocked) {
-    const risk = { heavy: 0.4, dive: 0.4, flurry: 0.3, quake: 0.5 }[b.intent] || 0;
+    const risk = { heavy: 0.25, dive: 0.25, flurry: 0.2, quake: 0.3 }[b.intent] || 0;
     if (risk) hurtAlly(s, b, risk);
   }
   b.lastBlocked = false;
