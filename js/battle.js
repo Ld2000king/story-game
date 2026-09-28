@@ -9,6 +9,7 @@ const ITEMS = {
   dagger: { name: 'פגיון צל', slot: 'weapon', price: 12, stat: 'agility', atk: 2, dmg: 2, crit: true, desc: 'מבוסס זריזות. פגיעה נקייה במיוחד (עודף 4+) גורמת נזק כפול.' },
   sword: { name: 'חרב פלדה', slot: 'weapon', price: 18, stat: 'power', atk: 2, dmg: 4, desc: 'מאוזנת: קל לפגוע, נזק טוב.' },
   staff: { name: 'מטה קריסטל', slot: 'weapon', price: 22, stat: 'spirit', atk: 1, dmg: 3, powerDmg: 2, charge: 1, desc: 'מבוסס רוח. הכוח שלך גורם +2 נזק, ומקבלים מטען כוח נוסף.' },
+  whip: { name: 'שוט הפקודה', slot: 'weapon', price: 16, stat: 'influence', atk: 1, dmg: 3, desc: 'מבוסס השפעה. מי שיודע לפקד — יודע גם להכות.' },
   axe: { name: 'גרזן ענק', slot: 'weapon', price: 26, stat: 'power', atk: -1, dmg: 7, desc: 'קשה לפגוע איתו, אבל כל פגיעה מרסקת.' },
 
   leather: { name: 'שריון עור', slot: 'armor', price: 8, def: 1, soak: 1, desc: 'הגנה +1, סופג 1 נזק מכל מכה.' },
@@ -108,6 +109,7 @@ const ABILITIES = {
   flight: { name: 'תעופה', desc: 'ממריא לשני תורות. באוויר, נשק רגיל פוגע ב־3− (חוץ מחנית), הקבוצה פוגעת בחצי, והוא צולל עם מכה חזקה.' },
   speed: { name: 'מהירות', desc: 'מהיר מדי: חלק מההתקפות שלו הן מטח של שתי מכות.' },
   heavy: { name: 'כוח אדיר', desc: 'מכות כבדות לעיתים קרובות. כל אחת יכולה לשבור אותך.' },
+  crystal: { name: 'לב הקריסטל', desc: 'שותה כוחות: הכוח שלך פוגע בו בחצי בלבד ומרפא אותו ב־2. לפעמים יונק ממך 3 חיים (בלי קשר לשריון) ומרפא את עצמו.' },
 };
 
 const ENEMIES = {
@@ -117,6 +119,9 @@ const ENEMIES = {
   varkasteam: { name: 'בית ורקס', hp: 32, atk: 4, def: 11, dmg: 4, ability: 'shape', purse: 22, desc: 'החברים לשעבר בשריון זהב, ובראשם סֶרֶן — שכיר חרב משנה צורה.' },
   iris: { name: 'איריס, רוכבת הרוח', hp: 26, atk: 5, def: 11, dmg: 4, ability: 'flight', purse: 16, desc: 'לוחמת עם כנפיים של נוצות נחושת, האלופה של בית הרוחות.' },
   grey: { name: 'הקצב האפור', hp: 22, atk: 4, def: 10, dmg: 5, ability: 'heavy', purse: 26, solo: true, desc: 'עשר עונות בלי הפסד. דו־קרב.' },
+  assassins: { name: 'המתנקשים במסכות', hp: 28, atk: 5, def: 11, dmg: 4, ability: 'speed', purse: 18, desc: 'חמישה צללים עם סכינים, באמצע הלילה, בתוך הצריף.' },
+  lastguard: { name: 'המשמר האחרון של ורקס', hp: 34, atk: 5, def: 11, dmg: 4, ability: 'shape', purse: 30, desc: 'סרן משנה הצורה ושכירי החרב הכי יקרים שכסף יכול לקנות.' },
+  guardian: { name: 'שומר הלב', hp: 40, atk: 5, def: 12, dmg: 5, ability: 'crystal', purse: 50, desc: 'יצור קריסטל בגובה שלוש קומות, שפועם בקצב של הלב שמתחת לחול.' },
   goldchamp: { name: 'אלוף בית ורקס', hp: 26, atk: 4, def: 11, dmg: 4, ability: 'speed', purse: 32, desc: 'אבק זהב הפך אותו למהיר מכל אדם.' },
 };
 
@@ -194,6 +199,7 @@ function pickIntent(b) {
     if (r > 0.8) return 'quake';
   }
   if (e.ability === 'speed' && r < 0.45) return 'flurry';
+  if (e.ability === 'crystal' && r < 0.25) return 'drain';
   const heavyChance = e.ability === 'heavy' ? 0.45 : e.ability === 'leap' ? 0.35 : 0.2;
   if (r < 0.12) return 'defend';
   if (rng() < heavyChance) return 'heavy';
@@ -226,6 +232,7 @@ function intentInfo(s, b) {
     case 'dive': return { icon: '🦅', text: `צלילה מהאוויר: ${hitPct(2)}% לפגוע, ${d(e.dmg + 2)} נזק. הגנתו 2− בזמן הצלילה.` };
     case 'transform': return { icon: '🐻', text: `${e.name} משנה צורה! הוא יתרפא ב־8 ויכה חזק יותר מעכשיו. לא יתקוף בתור הזה.` };
     case 'stoneskin': return { icon: '🪨', text: `${e.name} עוטה עור אבן: +3 הגנה לשני תורות. לא יתקוף בתור הזה.` };
+    case 'drain': return { icon: '🩸', text: `${e.name} יונק ממך כוח חיים: 3 נזק בטוח (שריון לא עוזר, 2 אם {תתגונן|תתגונני}), והוא מתרפא ב־3.` };
     case 'quake': return { icon: '🌋', text: `רעידת אדמה: 3 נזק בטוח (2 אם {תתגונן|תתגונני}), והקבוצה שלך לא תוקפת בתור הזה.` };
     default: return { icon: '?', text: '' };
   }
@@ -250,8 +257,13 @@ function actionInfo(s, b) {
   const pwB = pPowerBonus(s);
   return {
     attack: { pct: pct2d6(def - atkB), bonus: atkB, def, dmg: w.dmg + trinketDmg(s) },
-    power: { pct: pct2d6(def - pwB), bonus: pwB, def, dmg: 3 + s.powerLevel + (w.powerDmg || 0) + trinketDmg(s) + (s.power === 'fire' ? 2 : 0) },
+    power: { pct: pct2d6(def - pwB), bonus: pwB, def, dmg: powerBase(s, b) },
   };
+}
+
+function powerBase(s, b) {
+  const n = 3 + s.powerLevel + (weapon(s).powerDmg || 0) + trinketDmg(s) + (s.power === 'fire' ? 2 : 0);
+  return b.e.ability === 'crystal' ? Math.ceil(n / 2) : n;
 }
 
 function logRoll(b, who, d1, d2, parts, total, target, hit) {
@@ -309,12 +321,17 @@ function battleAct(s, action, arg) {
     logRoll(b, 'you', d1, d2, [`${d1}+${d2}`, `${STAT_NAMES[k]} ${s.stats[k]}`, `${POWERS[s.power].name} ${s.powerLevel}`], total, `הגנה ${def}`, hit);
     if (hit) {
       const margin = total - def;
-      const dmg = 3 + s.powerLevel + (w.powerDmg || 0) + extraDmg + Math.floor(margin / 2) + (s.power === 'fire' ? 2 : 0);
+      let dmg = 3 + s.powerLevel + (w.powerDmg || 0) + extraDmg + Math.floor(margin / 2) + (s.power === 'fire' ? 2 : 0);
+      if (e.ability === 'crystal') {
+        dmg = Math.ceil(dmg / 2);
+        e.hp = Math.min(e.maxHp, e.hp + 2);
+        b.log.push({ t: 'bad', text: '💎 הקריסטל שותה חלק מהכוח שלך: חצי נזק, והוא מתרפא ב־2.' });
+      }
       const real = dealToEnemy(b, dmg, true);
       const fx = {
         fire: 'הלהבות שורפות אותו (+2 נזק).',
         shadow: '{אתה נבלע|את נבלעת} בצל: ההתקפה הבאה שלו נגדך 3−.',
-        shield: 'חומת האור נשארת לפנייך: הנזק הבא שלך יחצה, והקבוצה מוגנת.',
+        shield: 'חומת האור נשארת לפניך: הנזק הבא שיגיע אליך ייחצה, והקבוצה מוגנת.',
         voice: 'הקול שלך מקפיא אותו: הוא יפסיד את התור הבא.',
       }[s.power];
       if (s.power === 'shadow') b.shadowed = true;
@@ -452,6 +469,14 @@ function enemyTurn(s, b, defending) {
       b.log.push({ t: 'bad', text: `🐻 ${e.name} משנה צורה לחיה ענקית! +8 חיים, מכות חזקות יותר.` });
       break;
     case 'stoneskin': b.stoneSkin = 3; b.log.push({ t: 'info', text: `🪨 ${e.name} מתכסה באבן: +3 הגנה.` }); break;
+    case 'drain': {
+      const n = defending ? 2 : 3;
+      s.hp = Math.max(0, s.hp - n);
+      const h = Math.min(3, e.maxHp - e.hp);
+      e.hp += h;
+      b.log.push({ t: 'bad', text: `🩸 ${e.name} יונק ממך ${n} חיים ומתרפא ב־${h}.` });
+      break;
+    }
     case 'quake': {
       let n = defending ? 2 : 3;
       s.hp = Math.max(0, s.hp - n);
@@ -525,7 +550,7 @@ function autoAction(s, b) {
   if (s.hp <= 5 && s.inv.potion) return ['item', 'potion'];
   const avail = teamIds(s).filter((id) => ALLY_SKILLS[id] && !b.used.includes(id));
   if (!b.solo && avail.length && b.round >= 2) return ['ally', avail[0]];
-  if (b.charges > 0 && b.intent !== 'defend' && b.intent !== 'stunned') return ['power'];
+  if (b.charges > 0 && b.intent !== 'defend' && b.intent !== 'stunned' && b.e.ability !== 'crystal') return ['power'];
   if ((b.intent === 'heavy' || b.intent === 'dive' || b.intent === 'flurry') && s.hp <= e_dmg(b) * 2) return ['defend'];
   return ['attack'];
 }
