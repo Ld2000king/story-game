@@ -5,8 +5,6 @@ scene('s3a_start', {
   chapter: 'עונה 3 — הגמר הגדול',
   enter: (s) => {
     s.path = 'arena';
-    evolve(s, 2);
-    evolve(s, 3);
     // משרת שחוזר לזירה מביא איתו את מה שלמד
     if (has(s, 'wasServant') && !has(s, 's3ServantBonus')) {
       setFlag(s, 's3ServantBonus');
@@ -53,6 +51,7 @@ ${teamCount(s) ? `הקבוצה שלך: ${names(teamIds(s))}.` : '{אתה לבד|
 scene('s3a_ambush', {
   title: 'סכינים בחושך',
   chapter: 'עונה 3 — הגמר הגדול',
+  enter: (s) => { evolve(s, 2); evolve(s, 3); },
   text: (s) => {
     const who = has(s, 'varkasEnemy') ? 'ורקס' : has(s, 'selvarWatching') || has(s, 'truthSpread') ? 'המגדל הלבן' : 'מישהו';
     return `שלושה לילות לפני חצי הגמר, {אתה מתעורר|את מתעוררת} מרעש קטן. קליק של מנעול.
@@ -61,7 +60,15 @@ scene('s3a_ambush', {
 
 ${who === 'מישהו' ? 'אין לך מושג מי שלח אותם. אבל {אתה מבין|את מבינה} דבר אחד: מישהו לא רוצה {שתגיע|שתגיעי} לגמר.' : `{אתה לא צריך|את לא צריכה} לשאול מי שלח אותם. ${who}. ${who === 'ורקס' ? 'הוא אמר שהוא יזכור.' : 'הם לא רוצים אלוף שיודע את האמת על הלב.'}`}
 
-${teamCount(s) ? `${names(teamIds(s))} קופצים מהמזרנים. אין זמן לנשק. אין זמן לחשוב.` : '{אתה לבד|את לבד}. אין זמן לנשק. אין זמן לחשוב.'}`;
+${teamCount(s) ? `${names(teamIds(s))} קופצים מהמזרנים. אין זמן לנשק. אין זמן לחשוב.` : '{אתה לבד|את לבד}. אין זמן לנשק. אין זמן לחשוב.'}
+
+${(() => {
+    const f = teamCount(s) ? (crush(s) && inTeam(s, crush(s)) ? crush(s) : teamIds(s)[0]) : null;
+    const who = f ? COMPANIONS[f].name : 'גרום, שנכנס בדיוק ברגע הזה';
+    return `מתנקש אחד תופס את ${who} מאחור. סכין על הגרון. הלהב כבר חותך את העור.
+
+` + PLAYER_AWAKEN.blade[s.power].replace('@FRIEND@', who);
+  })()}`;
   },
   choices: [
     { text: 'להילחם בחושך', battle: 'assassins', win: 's3a_ambush_win', lose: 's3a_ambush_lose' },
@@ -79,7 +86,7 @@ scene('s3a_ambush_win', {
 הסיפור מתפשט בעיר עוד לפני הצהריים: "$name שרד{|ה} התנקשות." בשוק כבר מהמרים {עליך|עלייך} פי שלושה.
 
 גרום מסתכל על הדם ברצפה ואומר בשקט: "עכשיו {אתה יודע|את יודעת} שאתם באמת מסוכנים להם. תשתמשו בזה."`,
-  choices: [{ text: 'להתכונן לחצי הגמר', next: 's3a_semis' }],
+  choices: [{ text: 'להתכונן לחצי הגמר', next: (s) => allyGate(s, ['borg'], 's3a_semis') }],
 });
 
 scene('s3a_ambush_lose', {
@@ -156,7 +163,7 @@ scene('s3a_semis_win', {
 בלילה כל הקבוצה יושבת סביב מדורה אחת. אף אחד לא מדבר על מחר. על הגמר. על מה שמחכה מתחת לחול.
 
 רק גרום, כשהוא קם ללכת, עוצר לידך. "ראיתי את השומר פעם אחת, לפני שלושים שנה," הוא אומר. "הוא שותה כוחות. כל מה שתזרוק{|י} עליו מבפנים — הוא יבלע חצי. תביא{|י} ברזל טוב, ושריון, ושיקויים. והזהב שלך? זה הזמן לבזבז אותו."`,
-  choices: [{ text: 'אל הלילה שלפני הגמר', next: 's3a_lastnight' }],
+  choices: [{ text: 'אל הלילה שלפני הגמר', next: (s) => allyGate(s, ['daniel'], 's3a_lastnight') }],
 });
 
 scene('s3a_semis_lose', {
@@ -271,7 +278,7 @@ scene('s3a_friends', {
 "ורקס מתכנן לשלוח אותנו נגדכם בחצי הגמר," מאיה אומרת. "אנחנו לא נילחם בכם. לא עוד פעם."
 
 "כשהגונג מכה," {אתה אומר|את אומרת}, "תורידו את הקסדות."`,
-  choices: [{ text: 'להמשיך', next: 's3a_ambush' }],
+  choices: [{ text: 'להמשיך', next: (s) => allyGate(s, ['maya'], 's3a_ambush') }],
 });
 
 scene('s3a_friends_no', {

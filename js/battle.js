@@ -164,7 +164,7 @@ const ALLY_FALL_TEXT = {
 
 // מכה חזקה שלא נחסמה עלולה לפגוע בחבר בקבוצה. שני פצעים — מחוץ לקרב. בליגת הדם — מוות.
 function hurtAlly(s, b, chance) {
-  if (b.solo) return;
+  if (b.solo || b.allyShield) return;
   const allies = activeAllies(s, b);
   if (s.power === 'shield' && powerTier(s) >= 2) chance /= 2;
   if (!allies.length || rng() >= chance) return;
@@ -418,10 +418,12 @@ function battleAct(s, action, arg) {
     b.used.push(id);
     b.commands++;
     const n = COMPANIONS[id].name;
-    const sk = ALLY_SKILLS[id];
+    const sk = allySkill(s, id);
     const hitAlly = (dmg) => dealToEnemy(b, dmg, false);
     let text = '';
-    switch (id) {
+    if (allyEvolved(s, id)) {
+      text = evolvedAllyAct(s, b, id, hitAlly);
+    } else switch (id) {
       case 'noa': {
         const h = Math.min(5, s.maxHp - s.hp);
         s.hp += h;
@@ -483,7 +485,7 @@ function battleAct(s, action, arg) {
     const allies = activeAllies(s, b);
     const team = allies.length;
     if (team && b.intent !== 'quake') {
-      let dmg = team;
+      let dmg = team + (b.teamBoost || 0);
       if (b.airborne > 0) dmg = Math.floor(dmg / 2);
       if (dmg > 0) {
         const real = dealToEnemy(b, dmg, false);
@@ -526,7 +528,7 @@ function enemyTurn(s, b, defending) {
       return;
     }
     if (b.block) {
-      b.block = false;
+      b.block = Math.max(0, (b.block === true ? 1 : b.block) - 1);
       b.lastBlocked = true;
       b.log.push({ t: 'good', text: `🪨 חומת האבן של בורג חוסמת את המכה.` });
       return;
@@ -669,6 +671,33 @@ function autoAction(s, b) {
   if (b.charges > 0 && b.intent !== 'defend' && b.intent !== 'stunned' && b.e.ability !== 'crystal') return ['power'];
   if ((b.intent === 'heavy' || b.intent === 'dive' || b.intent === 'flurry') && s.hp <= e_dmg(b) * 2) return ['defend'];
   return ['attack'];
+}
+
+// יכולות של חברים אחרי שהכוח הנסתר שלהם התעורר
+function evolvedAllyAct(s, b, id, hitAlly) {
+  const e = b.e;
+  switch (id) {
+    case 'noa': {
+      const h = Math.min(8, s.maxHp - s.hp);
+      s.hp += h;
+      Object.keys(b.wounds).forEach((w) => { b.wounds[w] = 0; });
+      const back = b.out.find((w) => !b.fallen.includes(w));
+      if (back) b.out = b.out.filter((w) => w !== back);
+      return `${h} חיים, כל הפצעים נסגרים${back ? `, ו${COMPANIONS[back].name} ${COMPANIONS[back].f ? 'קמה' : 'קם'} וחוזר${COMPANIONS[back].f ? 'ת' : ''} לקרב` : ''}.`;
+    }
+    case 'itay': return `${hitAlly(8)} נזק — הזהב עובר דרך השריון.`;
+    case 'maya': b.eDefMod -= 4; b.teamBoost = (b.teamBoost || 0) + 2; return 'הגנתו 4−, והקבוצה מכה +2 בכל תור.';
+    case 'daniel': b.stun = Math.max(b.stun, 2); return 'דניאל נעלם — והיריב מבזבז שני תורות בחיפושים.';
+    case 'kira': return `שלוש מכות מצלצלות: ${hitAlly(9)} נזק.`;
+    case 'borg': b.block = 2; return 'בורג הופך להר: שתי ההתקפות הבאות ייחסמו.';
+    case 'yoav': b.eDefMod -= 2; b.stun = Math.max(b.stun, 1); return `האדמה נפתחת מתחתיו: ${hitAlly(6)} נזק, הגנתו 2−, והוא מפסיד תור.`;
+    case 'alon': case 'grom': return `${hitAlly(10)} נזק.`;
+    case 'ziv': b.airborne = 0; b.eDefMod -= 1; return `קו של ברק: ${hitAlly(7)} נזק, הגנתו 1−, והוא על הקרקע.`;
+    case 'iris': b.airborne = 0; b.stun = Math.max(b.stun, 1); return `רעם מהשמיים: ${hitAlly(6)} נזק, והוא נופל ומפסיד תור.`;
+    case 'rena': b.eDefMod -= 1; return `רנה הופכת ל${e.name} עצמו: ${hitAlly(e.dmg + 4)} נזק, והגנתו 1−.`;
+    case 'goren': b.pDefMod += 3; b.allyShield = true; return 'גבעות קטנות עולות מתחת לכולם: ההגנה שלך +3, ואף חבר לא ייפצע.';
+  }
+  return '';
 }
 
 function e_dmg(b) {

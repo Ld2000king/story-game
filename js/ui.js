@@ -449,8 +449,8 @@ function renderActions() {
   if (!b.solo) {
     activeAllies(s, b).filter((id) => ALLY_SKILLS[id]).forEach((id) => {
       const used = b.used.includes(id);
-      const sk = ALLY_SKILLS[id];
-      add(`📣 ${COMPANIONS[id].name}: ${sk.name}`, used ? 'כבר נוצל בקרב הזה' : sk.desc + ' (במקום התור שלך)', () => battleAct(s, 'ally', id), used, 'ally');
+      const sk = allySkill(s, id);
+      add(`${allyEvolved(s, id) ? '✨' : '📣'} ${COMPANIONS[id].name}: ${sk.name}`, used ? 'כבר נוצל בקרב הזה' : sk.desc + ' (במקום התור שלך)', () => battleAct(s, 'ally', id), used, 'ally');
     });
   }
   ['potion', 'smoke', 'net'].forEach((id) => {
@@ -752,10 +752,10 @@ function renderPanel() {
       const c = s.crew[id];
       const info = COMPANIONS[id];
       const hearts = '♥'.repeat(Math.min(5, Math.ceil(c.trust / 2))) || '·';
-      const sk = ALLY_SKILLS[id];
+      const sk = ALLY_SKILLS[id] ? allySkill(s, id) : null;
       return `<li class="${c.status}" title="${sk ? esc(sk.name + ': ' + sk.desc) : ''}">
         <span class="avatar">${info.name[0]}</span>
-        <span class="who">${c.status === 'dead' ? '🕯️ ' : ''}${info.name}<small>${c.status === 'team' ? info.role + (sk ? ' · ' + sk.name : '') : c.status === 'dead' ? (info.f ? 'נפלה' : 'נפל') : STATUS_NAMES[c.status]}</small></span>
+        <span class="who">${c.status === 'dead' ? '🕯️ ' : ''}${info.name}<small>${c.status === 'team' ? info.role + (sk ? ` · ${allyEvolved(s, id) ? '✨' : ''}${sk.name}` : '') : c.status === 'dead' ? (info.f ? 'נפלה' : 'נפל') : STATUS_NAMES[c.status]}</small></span>
         <span class="hearts" title="אמון ${c.trust}">${hearts}</span>
       </li>`;
     })

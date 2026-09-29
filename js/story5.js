@@ -84,7 +84,7 @@ ${has(s, 'mascot') ? `ואז קורה משהו שאף אחד לא ציפה לו.
 צ׳יפס מסתכל עליהן, מסתכל {עליך|עלייך}, ונכנס בחזרה לכיס. הוא בוחר בך. הלטאות הענקיות מסתכלות {עליך|עלייך} בכבוד חדש.\n\n` : ''}בערב, אנשי העולם התחתון עושים חגיגה. יש מוזיקה של פעמוני זכוכית, ודגים זוהרים על האש, ומשהו מתוק שאף אחד לא מסכים להגיד ממה הוא עשוי.`,
   choices: (s) => {
     const list = [
-      { text: 'לרקוד עם כולם עד הבוקר', effect: (st) => { healFull(st); trustTeam(st, 1); }, next: 's5_roots' },
+      { text: 'לרקוד עם כולם עד הבוקר', effect: (st) => { healFull(st); trustTeam(st, 1); }, next: (s) => allyGate(s, ['kira', 'goren'], 's5_roots') },
       { text: 'לשבת עם הזקנה של השבט וללמוד על האדריכל', effect: (st) => { setFlag(st, 'architectLore'); addStat(st, 'influence', 1); }, next: 's5_lore' },
     ];
     const id = crush(s);
@@ -107,7 +107,7 @@ scene('s5_lore', {
 "ואם לא?"
 
 "אז המראה תעבור אותך."`,
-  choices: [{ text: 'לישון, עם הרבה מחשבות', next: 's5_roots' }],
+  choices: [{ text: 'לישון, עם הרבה מחשבות', next: (s) => allyGate(s, ['kira', 'goren'], 's5_roots') }],
 });
 
 scene('s5_lake', {
@@ -125,7 +125,7 @@ ${gx(crush(s), 'הוא מתיז', 'היא מתיזה')} {עליך|עלייך} מ
 
 לילה אחד בלי זירה. בלי עשרה. בלי שורשים. רק שניכם.`;
   },
-  choices: [{ text: 'בבוקר — אל השורש', next: 's5_roots' }],
+  choices: [{ text: 'בבוקר — אל השורש', next: (s) => allyGate(s, ['kira', 'goren'], 's5_roots') }],
 });
 
 scene('s5_roots', {

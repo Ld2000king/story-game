@@ -894,7 +894,7 @@ scene('s1_final_win', {
 
 ורקס כבר לא מנופף. הוא יושב בתא שלו, והפנים שלו אדומות מזעם.${extra}`;
   },
-  choices: [{ text: 'אל טקס סוף העונה', next: 'season_end' }],
+  choices: [{ text: 'אל טקס סוף העונה', next: (s) => allyGate(s, ['yoav'], 'season_end') }],
 });
 
 scene('s1_final_lose', {
