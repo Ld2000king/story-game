@@ -37,6 +37,7 @@ function migrate(s) {
   s.inv = s.inv || { potion: 0, smoke: 0, net: 0 };
   if (s.flags && s.flags.potion && !s.flags.potionMigrated) { s.inv.potion++; s.flags.potionMigrated = true; }
   if (s.battle === undefined) s.battle = null;
+  migratePowerTier(s);
   return s;
 }
 
@@ -140,6 +141,7 @@ function renderScene() {
 
   renderRoll();
   renderLastBattle();
+  renderEvolve();
   $('notes').innerHTML = state.notes.map((n) => `<span class="chip ${n.kind}">${f(n.text)}</span>`).join('');
   $('scene-title').textContent = fmt(state, sc.title);
   $('scene-text').innerHTML = sceneText(state, sc)
@@ -158,6 +160,19 @@ function renderScene() {
   } else {
     visibleChoices(state, sc).forEach((c) => box.appendChild(choiceBlock(c)));
   }
+}
+
+function renderEvolve() {
+  const el = $('evolve');
+  const t = state.flags.evolveBanner;
+  if (!t || !state.power) { el.hidden = true; return; }
+  const node = POWER_TREE[state.power][t - 1];
+  const prev = POWER_TREE[state.power][t - 2];
+  el.hidden = false;
+  el.innerHTML = `<div class="ev-k">✨ הכוח שלך התפתח · שלב ${t} מתוך 5</div>
+    <div class="ev-name">${prev ? `<span class="ev-prev">${esc(prev.name)}</span> ← ` : ''}${POWERS[state.power].icon} ${esc(node.name)}</div>
+    <div class="ev-desc">${f(node.desc)}</div>`;
+  state.flags.evolveBanner = 0;
 }
 
 function renderLastBattle() {
@@ -426,6 +441,10 @@ function renderActions() {
   if (s.power) {
     add(`${POWERS[s.power].icon} ${POWERS[s.power].name}`, b.charges ? `${ai.power.pct}% לפגוע · ${ai.power.dmg}+ נזק · נשארו ${b.charges} מטענים · ${powerEffect(s.power)}` : 'אין מטענים', () => battleAct(s, 'power'), !b.charges, 'power');
   }
+  evoActions(s, b).forEach((a) => {
+    const off = a.cost === 'ult' ? !!b.ultUsed : !b.charges;
+    add(a.label, off ? (a.cost === 'ult' ? 'כבר נוצל בקרב הזה' : 'אין מטענים') : a.sub, () => battleAct(s, a.id, a.arg), off, 'power');
+  });
   add('🛡️ התגוננות', '+4 הגנה, חצי נזק, מכת נגד 2 אם הוא מחטיא', () => battleAct(s, 'defend'));
   if (!b.solo) {
     activeAllies(s, b).filter((id) => ALLY_SKILLS[id]).forEach((id) => {
@@ -448,6 +467,7 @@ function powerEffect(p) {
     shadow: 'המכה הבאה שלו נגדך 3−',
     shield: 'הנזק הבא אליך נחצה',
     voice: 'בפגיעה — הוא מפסיד תור',
+    shape: '+2 נזק, +1 חיים',
   }[p];
 }
 
@@ -697,8 +717,8 @@ function memorial() {
 function renderPanel() {
   const s = state;
   $('hero-name').textContent = s.name;
-  $('hero-power').textContent = s.power ? `${POWERS[s.power].icon} ${POWERS[s.power].name} · רמה ${s.powerLevel}` : 'הכוח שלך עוד לא התעורר';
-  $('hero-power').title = s.power ? POWERS[s.power].desc : '';
+  $('hero-power').textContent = s.power ? `${POWERS[s.power].icon} ${tierName(s)} · שלב ${powerTier(s)}/5 · רמה ${s.powerLevel}` : 'הכוח שלך עוד לא התעורר';
+  $('hero-power').title = s.power ? fmt(s, POWER_TREE[s.power].slice(0, powerTier(s)).map((n, i) => `${i + 1}. ${n.name} — ${n.desc}`).join('\n')) : '';
   $('hp-bar').style.width = `${Math.round((s.hp / s.maxHp) * 100)}%`;
   $('hp-text').textContent = `❤ ${s.hp} / ${s.maxHp}`;
   $('gold').textContent = s.gold;

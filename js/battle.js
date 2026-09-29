@@ -87,17 +87,17 @@ function pPowerBonus(s) {
 
 function pDefense(s, b, defending) {
   const armor = gearItem(s, 'armor');
-  return 8 + s.stats.agility + (armor ? armor.def : 0) + (b ? b.pDefMod : 0) + (defending ? 4 : 0);
+  return 8 + s.stats.agility + (armor ? armor.def : 0) + perkDef(s) + (b ? b.pDefMod : 0) + (defending ? 4 : 0);
 }
 
 function pSoak(s) {
   const armor = gearItem(s, 'armor');
-  return armor ? armor.soak : 0;
+  return (armor ? armor.soak : 0) + perkSoak(s);
 }
 
 function maxCharges(s) {
   if (!s.power) return 0;
-  return 1 + Math.floor(s.powerLevel / 2) + gearSum(s, 'charge');
+  return 1 + Math.floor(s.powerLevel / 2) + gearSum(s, 'charge') + (ascended(s) ? 2 : 0);
 }
 
 // ---------- יריבים ----------
@@ -118,15 +118,18 @@ const ENEMIES = {
   yoavduel: { name: 'יואב', hp: 18, atk: 3, def: 10, dmg: 3, ability: 'earth', purse: 12, solo: true, desc: 'דו־קרב אחד על אחד. בלי הקבוצות.' },
   varkasteam: { name: 'בית ורקס', hp: 32, atk: 4, def: 11, dmg: 4, ability: 'shape', purse: 22, desc: 'החברים לשעבר בשריון זהב, ובראשם סֶרֶן — שכיר חרב משנה צורה.' },
   iris: { name: 'איריס, רוכבת הרוח', hp: 26, atk: 5, def: 11, dmg: 4, ability: 'flight', purse: 16, desc: 'לוחמת עם כנפיים של נוצות נחושת, האלופה של בית הרוחות.' },
-  grey: { name: 'הקצב האפור', hp: 22, atk: 4, def: 10, dmg: 5, ability: 'heavy', purse: 26, solo: true, desc: 'עשר עונות בלי הפסד. דו־קרב.' },
+  grey: { name: 'הקצב האפור', hp: 26, atk: 4, def: 10, dmg: 5, ability: 'heavy', purse: 26, solo: true, desc: 'עשר עונות בלי הפסד. דו־קרב.' },
   assassins: { name: 'המתנקשים במסכות', hp: 28, atk: 5, def: 11, dmg: 4, ability: 'speed', purse: 18, desc: 'חמישה צללים עם סכינים, באמצע הלילה, בתוך הצריף.' },
-  lastguard: { name: 'המשמר האחרון של ורקס', hp: 34, atk: 5, def: 11, dmg: 4, ability: 'shape', purse: 30, desc: 'סרן משנה הצורה ושכירי החרב הכי יקרים שכסף יכול לקנות.' },
-  guardian: { name: 'שומר הלב', hp: 40, atk: 5, def: 12, dmg: 5, ability: 'crystal', purse: 50, desc: 'יצור קריסטל בגובה שלוש קומות, שפועם בקצב של הלב שמתחת לחול.' },
-  kal: { name: 'קאל, אדון הסערות', hp: 30, atk: 5, def: 12, dmg: 5, ability: 'flight', purse: 30, desc: 'אחד מעשרת האליטה. רסיס של הלב בחזה שלו, וברקים בכנפיים.' },
+  lastguard: { name: 'המשמר האחרון של ורקס', hp: 38, atk: 5, def: 11, dmg: 4, ability: 'shape', purse: 30, desc: 'סרן משנה הצורה ושכירי החרב הכי יקרים שכסף יכול לקנות.' },
+  guardian: { name: 'שומר הלב', hp: 50, atk: 6, def: 12, dmg: 5, ability: 'crystal', purse: 50, desc: 'יצור קריסטל בגובה שלוש קומות, שפועם בקצב של הלב שמתחת לחול.' },
+  kal: { name: 'קאל, אדון הסערות', hp: 36, atk: 5, def: 12, dmg: 5, ability: 'flight', purse: 30, desc: 'אחד מעשרת האליטה. רסיס של הלב בחזה שלו, וברקים בכנפיים.' },
   grom: { name: 'גרום, יד הברזל', hp: 34, atk: 5, def: 11, dmg: 6, ability: 'heavy', purse: 20, solo: true, desc: 'המאמן שלך. רסיס של הלב אכל לו את העין הטובה.' },
-  twins: { name: 'תאומי האבן ומורגנה', hp: 40, atk: 6, def: 12, dmg: 5, ability: 'earth', purse: 25, desc: 'שלושה מעשרת האליטה, ביחד, בשער המלח.' },
-  echo: { name: 'הד הלב', hp: 42, atk: 5, def: 11, dmg: 6, ability: 'crystal', purse: 80, desc: 'מה שנשאר מלב הארנה: דמות לבנה בגלימה של סלבר, עם הפנים של כל מי שהלב שתה.' },
-  goldchamp: { name: 'אלוף בית ורקס', hp: 26, atk: 4, def: 11, dmg: 4, ability: 'speed', purse: 32, desc: 'אבק זהב הפך אותו למהיר מכל אדם.' },
+  twins: { name: 'תאומי האבן ומורגנה', hp: 46, atk: 6, def: 12, dmg: 5, ability: 'earth', purse: 25, desc: 'שלושה מעשרת האליטה, ביחד, בשער המלח.' },
+  echo: { name: 'הד הלב', hp: 56, atk: 6, def: 11, dmg: 7, ability: 'crystal', purse: 80, desc: 'מה שנשאר מלב הארנה: דמות לבנה בגלימה של סלבר, עם הפנים של כל מי שהלב שתה.' },
+  rootbeast: { name: 'שומר השורשים', hp: 50, atk: 7, def: 13, dmg: 6, ability: 'earth', purse: 35, desc: 'חיה של שורשים וזכוכית שחורה, בגודל של גבעה.' },
+  mirror: { name: 'ההשתקפות שלך', hp: 10, atk: 0, def: 8, dmg: 0, ability: 'heavy', purse: 0, solo: true, desc: '{אתה|את}. בלי חברים. בלי פחד. בלי שום דבר חוץ מכוח.' },
+  architect: { name: 'האדריכל', hp: 100, atk: 8, def: 14, dmg: 7, ability: 'crystal', purse: 100, desc: 'מה ששותל לבבות בערים וקוצר עולמות. שורשים, עיניים, וקול שנשמע כמו אדמה זזה.' },
+  goldchamp: { name: 'אלוף בית ורקס', hp: 30, atk: 4, def: 11, dmg: 4, ability: 'speed', purse: 32, desc: 'אבק זהב הפך אותו למהיר מכל אדם.' },
 };
 
 // יכולות של חברי הקבוצה — פעם אחת בכל קרב, במקום התור שלך
@@ -163,6 +166,7 @@ const ALLY_FALL_TEXT = {
 function hurtAlly(s, b, chance) {
   if (b.solo) return;
   const allies = activeAllies(s, b);
+  if (s.power === 'shield' && powerTier(s) >= 2) chance /= 2;
   if (!allies.length || rng() >= chance) return;
   const id = allies[Math.floor(rng() * allies.length)];
   const n = COMPANIONS[id].name;
@@ -185,6 +189,8 @@ function startBattle(s, enemyId, opt) {
   const base = ENEMIES[enemyId];
   const mods = opt.mods || {};
   const e = { ...base, maxHp: base.hp };
+  if (mods.ability) e.ability = mods.ability;
+  if (mods.name) e.name = mods.name;
   if (mods.atk) e.atk += mods.atk;
   if (mods.dmg) e.dmg += mods.dmg;
   if (mods.hp) { e.hp += mods.hp; e.maxHp += mods.hp; }
@@ -225,6 +231,10 @@ function startBattle(s, enemyId, opt) {
   };
   const b = s.battle;
   if (mods.label) b.log.push({ t: 'info', text: mods.label });
+  if (s.power === 'voice' && powerTier(s) >= 2) {
+    e.atk -= 1;
+    b.log.push({ t: 'power', text: `📯 קול האימה: ${e.name} שומע את הקול שלך עוד לפני הקרב. התקפה 1−.` });
+  }
   b.intent = pickIntent(b);
 }
 
@@ -343,7 +353,9 @@ function battleAct(s, action, arg) {
   b.log.push({ t: 'round', text: `תור ${b.round}` });
 
   // ----- התור שלך -----
-  if (action === 'attack') {
+  if (EVO_ACTIONS.includes(action)) {
+    evoAct(s, b, action, arg);
+  } else if (action === 'attack') {
     const d1 = d6(), d2 = d6();
     const pen = flightPenalty(s, b);
     const def = enemyDef(b);
@@ -357,7 +369,7 @@ function battleAct(s, action, arg) {
     logRoll(b, 'you', d1, d2, parts, total, `הגנה ${def}`, hit);
     if (hit) {
       const margin = total - def;
-      let dmg = w.dmg + extraDmg + Math.floor(margin / 2) + (b.berserk ? 4 : 0);
+      let dmg = (b.mimicDmg || w.dmg) + extraDmg + Math.floor(margin / 2) + (b.berserk ? 4 : 0);
       let crit = false;
       if (w.crit && margin >= 4) { dmg *= 2; crit = true; }
       const real = dealToEnemy(b, dmg, true);
@@ -375,8 +387,8 @@ function battleAct(s, action, arg) {
     logRoll(b, 'you', d1, d2, [`${d1}+${d2}`, `${STAT_NAMES[k]} ${s.stats[k]}`, `${POWERS[s.power].name} ${s.powerLevel}`], total, `הגנה ${def}`, hit);
     if (hit) {
       const margin = total - def;
-      let dmg = 3 + s.powerLevel + (w.powerDmg || 0) + extraDmg + Math.floor(margin / 2) + (s.power === 'fire' ? 2 : 0) + (b.berserk ? 4 : 0);
-      if (e.ability === 'crystal') {
+      let dmg = 3 + s.powerLevel + (w.powerDmg || 0) + extraDmg + Math.floor(margin / 2) + (s.power === 'fire' || s.power === 'shape' ? 2 : 0) + (b.berserk ? 4 : 0) + powerDmgBonus(s);
+      if (e.ability === 'crystal' && !ascended(s)) {
         dmg = Math.ceil(dmg / 2);
         e.hp = Math.min(e.maxHp, e.hp + 2);
         b.log.push({ t: 'bad', text: '💎 הקריסטל שותה חלק מהכוח שלך: חצי נזק, והוא מתרפא ב־2.' });
@@ -387,11 +399,13 @@ function battleAct(s, action, arg) {
         shadow: '{אתה נבלע|את נבלעת} בצל: ההתקפה הבאה שלו נגדך 3−.',
         shield: 'חומת האור נשארת לפניך: הנזק הבא שיגיע אליך ייחצה, והקבוצה מוגנת.',
         voice: 'הקול שלך מקפיא אותו: הוא יפסיד את התור הבא.',
+        shape: 'הגוף שלך הופך לחיה באמצע המכה (+2 נזק), והפצעים שלך נסגרים קצת (+1 חיים).',
       }[s.power];
+      if (s.power === 'shape') s.hp = Math.min(s.maxHp, s.hp + 1);
       if (s.power === 'shadow') b.shadowed = true;
       if (s.power === 'shield') { b.shielded = true; b.protect += 2; }
       if (s.power === 'voice') b.stun = Math.max(b.stun, 1);
-      b.log.push({ t: 'power', text: `${POWERS[s.power].icon} ${POWERS[s.power].name} פוגעת! ${real} נזק. ${fx}` });
+      b.log.push({ t: 'power', text: `${POWERS[s.power].icon} ${tierName(s)} פוגעת! ${real} נזק. ${fx}` });
     } else {
       b.log.push({ t: 'bad', text: `${POWERS[s.power].icon} הכוח מתפרץ, אבל מחטיא. המטען בוזבז.` });
     }
@@ -462,7 +476,7 @@ function battleAct(s, action, arg) {
     if (risk) hurtAlly(s, b, risk);
   }
   b.lastBlocked = false;
-  if (s.hp <= 0) return endRound(s, 'ko');
+  if (s.hp <= 0 && !tryRebirth(s, b)) return endRound(s, 'ko');
 
   // ----- הקבוצה (כשהצל שולט, הם מנסים לעצור אותך, לא את היריב) -----
   if (!b.solo && !b.berserk) {
@@ -476,6 +490,12 @@ function battleAct(s, action, arg) {
         b.log.push({ t: 'ally', text: `👥 הקבוצה (${names(allies)}) תוקפת: ${real} נזק${b.airborne > 0 ? ' (חצי — הוא באוויר)' : ''}.` });
       }
     }
+    if (e.hp <= 0) return endRound(s, 'win');
+  }
+  // צבא הצללים: שני כפילים נלחמים לצידך, גם בדו־קרב
+  if (s.power === 'shadow' && powerTier(s) >= 4 && !b.berserk) {
+    const real = dealToEnemy(b, 2, true);
+    b.log.push({ t: 'power', text: `🌑 שני כפילי הצל שלך מכים יחד: ${real} נזק.` });
     if (e.hp <= 0) return endRound(s, 'win');
   }
   // צ׳יפס הלטאה מתערב לפעמים
@@ -525,6 +545,10 @@ function enemyTurn(s, b, defending) {
       if (defending) n = Math.ceil(n / 2);
       if (b.shielded) { n = Math.ceil(n / 2); b.shielded = false; }
       s.hp = Math.max(0, s.hp - n);
+      if (s.power === 'fire' && powerTier(s) >= 2) {
+        const burn = dealToEnemy(b, 1, true);
+        if (burn) b.log.push({ t: 'power', text: `🔥 שריון האש שורף את היד שפגעה: ${burn} נזק.` });
+      }
       b.log.push({ t: 'bad', text: `${e.name} פוגע בך: ${n} נזק${pSoak(s) ? ` (השריון ספג ${Math.min(pSoak(s), dmg - 1)})` : ''}${defending ? ', חצי בזכות ההתגוננות' : ''}.` });
     } else {
       b.log.push({ t: 'good', text: `${e.name} מחטיא.` });
@@ -632,6 +656,11 @@ function finishBattle(s) {
 // מדיניות פשוטה של "שחקן סביר", לשימוש בהדמיות
 function autoAction(s, b) {
   if (b.berserk) return b.charges > 0 ? ['power'] : ['attack'];
+  const evo = evoActions(s, b);
+  const ult = evo.find((a) => a.cost === 'ult');
+  if (ult && !b.ultUsed && (ult.id !== 'sanctuary' || s.hp <= s.maxHp / 3)) return [ult.id, ult.arg];
+  const tech = evo.find((a) => a.cost === 'charge' && a.id !== 'mimic');
+  if (tech && b.charges > 0 && b.intent !== 'stunned') return [tech.id, tech.arg];
   if (s.hp <= 5 && s.inv.potion) return ['item', 'potion'];
   const avail = activeAllies(s, b).filter((id) => ALLY_SKILLS[id] && !b.used.includes(id));
   const wounded = Object.values(b.wounds).some((w) => w === 1);

@@ -13,6 +13,7 @@ const POWERS = {
   shadow: { name: 'הליכת צל', stat: 'agility', icon: '🌑', desc: 'היכולת להיבלע בצללים ולהופיע מאחורי האויב.' },
   shield: { name: 'חומת האור', stat: 'spirit', icon: '🛡️', desc: 'מחסום של אור טהור שמגן על כל מי שעומד מאחוריך.' },
   voice: { name: 'קול הפקודה', stat: 'influence', icon: '📯', desc: 'קול שחודר לנפש ומכריח אחרים לציית.' },
+  shape: { name: 'שינוי צורה', stat: 'agility', icon: '🎭', desc: 'הגוף שלך זוכר כל צורה שראה — חיה, אדם, ובסוף גם אויב.' },
 };
 
 const COMPANIONS = {

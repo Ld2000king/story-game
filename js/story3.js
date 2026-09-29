@@ -5,6 +5,8 @@ scene('s3a_start', {
   chapter: 'עונה 3 — הגמר הגדול',
   enter: (s) => {
     s.path = 'arena';
+    evolve(s, 2);
+    evolve(s, 3);
     // משרת שחוזר לזירה מביא איתו את מה שלמד
     if (has(s, 'wasServant') && !has(s, 's3ServantBonus')) {
       setFlag(s, 's3ServantBonus');
