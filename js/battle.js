@@ -122,6 +122,10 @@ const ENEMIES = {
   assassins: { name: 'המתנקשים במסכות', hp: 28, atk: 5, def: 11, dmg: 4, ability: 'speed', purse: 18, desc: 'חמישה צללים עם סכינים, באמצע הלילה, בתוך הצריף.' },
   lastguard: { name: 'המשמר האחרון של ורקס', hp: 34, atk: 5, def: 11, dmg: 4, ability: 'shape', purse: 30, desc: 'סרן משנה הצורה ושכירי החרב הכי יקרים שכסף יכול לקנות.' },
   guardian: { name: 'שומר הלב', hp: 40, atk: 5, def: 12, dmg: 5, ability: 'crystal', purse: 50, desc: 'יצור קריסטל בגובה שלוש קומות, שפועם בקצב של הלב שמתחת לחול.' },
+  kal: { name: 'קאל, אדון הסערות', hp: 30, atk: 5, def: 12, dmg: 5, ability: 'flight', purse: 30, desc: 'אחד מעשרת האליטה. רסיס של הלב בחזה שלו, וברקים בכנפיים.' },
+  grom: { name: 'גרום, יד הברזל', hp: 34, atk: 5, def: 11, dmg: 6, ability: 'heavy', purse: 20, solo: true, desc: 'המאמן שלך. רסיס של הלב אכל לו את העין הטובה.' },
+  twins: { name: 'תאומי האבן ומורגנה', hp: 40, atk: 6, def: 12, dmg: 5, ability: 'earth', purse: 25, desc: 'שלושה מעשרת האליטה, ביחד, בשער המלח.' },
+  echo: { name: 'הד הלב', hp: 42, atk: 5, def: 11, dmg: 6, ability: 'crystal', purse: 80, desc: 'מה שנשאר מלב הארנה: דמות לבנה בגלימה של סלבר, עם הפנים של כל מי שהלב שתה.' },
   goldchamp: { name: 'אלוף בית ורקס', hp: 26, atk: 4, def: 11, dmg: 4, ability: 'speed', purse: 32, desc: 'אבק זהב הפך אותו למהיר מכל אדם.' },
 };
 
@@ -139,6 +143,7 @@ const ALLY_SKILLS = {
   iris: { name: 'צלילה מהשמיים', desc: '4 נזק, מתעלמת מהגנה ומפילה יריב שעף.' },
   rena: { name: 'צורת דוב', desc: 'הופכת לדוב: 6 נזק ליריב.' },
   goren: { name: 'שריון אבן', desc: 'ההגנה שלך +3 עד סוף הקרב.' },
+  grom: { name: 'אגרוף ברזל', desc: '7 נזק ליריב.' },
 };
 
 // ---------- מהלך הקרב ----------
@@ -168,7 +173,7 @@ function hurtAlly(s, b, chance) {
     return;
   }
   b.out.push(id);
-  if (b.deadly) {
+  if (b.alliesDie !== undefined ? b.alliesDie : b.deadly) {
     b.fallen.push(id);
     b.log.push({ t: 'dead', text: ALLY_FALL_TEXT.dead(n, f) });
   } else {
@@ -186,8 +191,10 @@ function startBattle(s, enemyId, opt) {
   s.battle = {
     enemyId,
     e,
-    solo: !!base.solo,
-    deadly: s.season >= 2,
+    solo: !!base.solo || !!mods.solo,
+    deadly: s.season >= 2 && !mods.nonlethal,
+    berserk: !!mods.berserk,
+    alliesDie: s.season >= 2,
     round: 1,
     maxRounds: 6,
     win: resolveNext(s, opt.win),
@@ -340,19 +347,21 @@ function battleAct(s, action, arg) {
     const d1 = d6(), d2 = d6();
     const pen = flightPenalty(s, b);
     const def = enemyDef(b);
-    const total = d1 + d2 + s.stats[w.stat] + w.atk - pen;
+    const rage = b.berserk ? 5 : 0;
+    const total = d1 + d2 + s.stats[w.stat] + w.atk - pen + rage;
     const parts = [`${d1}+${d2}`, `${STAT_NAMES[w.stat]} ${s.stats[w.stat]}`];
     if (w.atk) parts.push(`${w.name} ${w.atk}`);
     if (pen) parts.push(`באוויר 3−`);
+    if (rage) parts.push(`הצל 5`);
     const hit = total >= def;
     logRoll(b, 'you', d1, d2, parts, total, `הגנה ${def}`, hit);
     if (hit) {
       const margin = total - def;
-      let dmg = w.dmg + extraDmg + Math.floor(margin / 2);
+      let dmg = w.dmg + extraDmg + Math.floor(margin / 2) + (b.berserk ? 4 : 0);
       let crit = false;
       if (w.crit && margin >= 4) { dmg *= 2; crit = true; }
       const real = dealToEnemy(b, dmg, true);
-      b.log.push({ t: 'good', text: `פגיעה${crit ? ' קריטית' : ''}! ${real} נזק (${w.dmg} נשק${extraDmg ? ' + ' + extraDmg + ' קמע' : ''}${Math.floor(margin / 2) ? ' + ' + Math.floor(margin / 2) + ' עודף' : ''}${crit ? ' ×2' : ''}).` });
+      b.log.push({ t: b.berserk ? 'dead' : 'good', text: `${b.berserk ? '🖤 הצל קורע. ' : ''}פגיעה${crit ? ' קריטית' : ''}! ${real} נזק (${w.dmg} נשק${extraDmg ? ' + ' + extraDmg + ' קמע' : ''}${Math.floor(margin / 2) ? ' + ' + Math.floor(margin / 2) + ' עודף' : ''}${crit ? ' ×2' : ''}).` });
     } else {
       b.log.push({ t: 'bad', text: 'החטאה.' });
     }
@@ -366,7 +375,7 @@ function battleAct(s, action, arg) {
     logRoll(b, 'you', d1, d2, [`${d1}+${d2}`, `${STAT_NAMES[k]} ${s.stats[k]}`, `${POWERS[s.power].name} ${s.powerLevel}`], total, `הגנה ${def}`, hit);
     if (hit) {
       const margin = total - def;
-      let dmg = 3 + s.powerLevel + (w.powerDmg || 0) + extraDmg + Math.floor(margin / 2) + (s.power === 'fire' ? 2 : 0);
+      let dmg = 3 + s.powerLevel + (w.powerDmg || 0) + extraDmg + Math.floor(margin / 2) + (s.power === 'fire' ? 2 : 0) + (b.berserk ? 4 : 0);
       if (e.ability === 'crystal') {
         dmg = Math.ceil(dmg / 2);
         e.hp = Math.min(e.maxHp, e.hp + 2);
@@ -408,7 +417,7 @@ function battleAct(s, action, arg) {
         break;
       }
       case 'itay': case 'kira': text = `${hitAlly(5)} נזק.`; break;
-      case 'alon': text = `${hitAlly(7)} נזק.`; break;
+      case 'alon': case 'grom': text = `${hitAlly(7)} נזק.`; break;
       case 'rena': text = `${n} הופכת לדוב ענק: ${hitAlly(6)} נזק.`; break;
       case 'maya': b.eDefMod -= 3; text = 'ההגנה שלו 3− עד סוף הקרב.'; break;
       case 'daniel': b.stun = Math.max(b.stun, 1); text = 'הוא יפסיד את התור הבא.'; break;
@@ -439,6 +448,12 @@ function battleAct(s, action, arg) {
 
   if (e.hp <= 0) return endRound(s, 'win');
 
+  // ----- הצל לא מבחין בין אויב לחבר -----
+  if (b.berserk && activeAllies(s, b).length && rng() < 0.35) {
+    b.log.push({ t: 'dead', text: '🖤 הצל מסתובב. הוא לא מבחין בין אויב לחבר.' });
+    hurtAlly(s, b, 1);
+  }
+
   // ----- התור של היריב -----
   enemyTurn(s, b, defending);
   // מכות חזקות מסכנות גם את הקבוצה, אלא אם השחקן התגונן או שהמכה נחסמה
@@ -449,8 +464,8 @@ function battleAct(s, action, arg) {
   b.lastBlocked = false;
   if (s.hp <= 0) return endRound(s, 'ko');
 
-  // ----- הקבוצה -----
-  if (!b.solo) {
+  // ----- הקבוצה (כשהצל שולט, הם מנסים לעצור אותך, לא את היריב) -----
+  if (!b.solo && !b.berserk) {
     const allies = activeAllies(s, b);
     const team = allies.length;
     if (team && b.intent !== 'quake') {
@@ -506,7 +521,7 @@ function enemyTurn(s, b, defending) {
     const hit = total >= def;
     logRoll(b, 'enemy', d1, d2, parts, total, `ההגנה שלך ${def}`, hit);
     if (hit) {
-      let n = Math.max(1, dmg - pSoak(s));
+      let n = Math.max(1, dmg - pSoak(s) - (b.berserk ? 3 : 0));
       if (defending) n = Math.ceil(n / 2);
       if (b.shielded) { n = Math.ceil(n / 2); b.shielded = false; }
       s.hp = Math.max(0, s.hp - n);
@@ -616,6 +631,7 @@ function finishBattle(s) {
 
 // מדיניות פשוטה של "שחקן סביר", לשימוש בהדמיות
 function autoAction(s, b) {
+  if (b.berserk) return b.charges > 0 ? ['power'] : ['attack'];
   if (s.hp <= 5 && s.inv.potion) return ['item', 'potion'];
   const avail = activeAllies(s, b).filter((id) => ALLY_SKILLS[id] && !b.used.includes(id));
   const wounded = Object.values(b.wounds).some((w) => w === 1);

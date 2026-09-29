@@ -18,7 +18,8 @@ function store(key, value) {
 }
 
 function foundEndings() {
-  return store(ENDINGS_KEY) || [];
+  const ids = new Set(ALL_ENDINGS.map((e) => e.id));
+  return (store(ENDINGS_KEY) || []).filter((id) => ids.has(id));
 }
 
 function esc(t) {
@@ -415,6 +416,12 @@ function renderActions() {
     box.appendChild(el);
   };
   const w = weapon(s);
+  if (b.berserk) {
+    box.insertAdjacentHTML('beforebegin', `<div class="warn dead slim">${f('🖤 {אתה לא שולט|את לא שולטת} בעצמך. הצל בוחר רק איך לקרוע.')}</div>`);
+    add('🖤 לקרוע', `${ai.attack.pct}% לפגוע · ${ai.attack.dmg + 4}+ נזק · עלול לפגוע גם בחברים`, () => battleAct(s, 'attack'), false, 'surrender');
+    if (s.power && b.charges) add(`🖤 ${POWERS[s.power].name} — שחורה`, `${ai.power.pct}% · ${ai.power.dmg}+ נזק · מטענים ${b.charges}`, () => battleAct(s, 'power'), false, 'power');
+    return;
+  }
   add(`⚔️ התקפה — ${w.name}`, `${ai.attack.pct}% לפגוע · ${ai.attack.dmg}+ נזק${b.airborne > 0 && !w.reach ? ' · 3− באוויר' : ''}${w.crit ? ' · קריטי בעודף 4+' : ''}`, () => battleAct(s, 'attack'));
   if (s.power) {
     add(`${POWERS[s.power].icon} ${POWERS[s.power].name}`, b.charges ? `${ai.power.pct}% לפגוע · ${ai.power.dmg}+ נזק · נשארו ${b.charges} מטענים · ${powerEffect(s.power)}` : 'אין מטענים', () => battleAct(s, 'power'), !b.charges, 'power');
@@ -504,7 +511,7 @@ function entryCard(entry, actions) {
   return `<div class="item save-entry">
     <div class="i-name">${esc(entry.label)} <span class="muted">· ${esc(timeAgo(entry.time))}</span></div>
     <div class="i-desc">${esc(m.name)} · ${esc(m.chapter)}<br>${esc(m.title)}</div>
-    <div class="i-stats"><span>❤ ${m.hp}/${m.maxHp}</span><span>🪙 ${m.gold}</span><span>👥 ${m.team}</span><span>🌙 עונה ${Math.min(m.season, 3)}</span></div>
+    <div class="i-stats"><span>❤ ${m.hp}/${m.maxHp}</span><span>🪙 ${m.gold}</span><span>👥 ${m.team}</span><span>🌙 עונה ${m.season}</span></div>
     <div class="i-buy">${actions}</div>
   </div>`;
 }
@@ -696,7 +703,7 @@ function renderPanel() {
   $('hp-text').textContent = `❤ ${s.hp} / ${s.maxHp}`;
   $('gold').textContent = s.gold;
   $('fame').textContent = s.fame;
-  $('season').textContent = Math.min(s.season, 3);
+  $('season').textContent = s.season;
 
   const main = mainStat(s);
   $('stats').innerHTML = Object.keys(STAT_NAMES)

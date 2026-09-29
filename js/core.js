@@ -28,6 +28,7 @@ const COMPANIONS = {
   iris: { name: 'איריס', role: 'רוכבת הרוח — תעופה', f: true },
   rena: { name: 'רנה', role: 'משנת צורה', f: true },
   goren: { name: 'גורן', role: 'כשף אדמה', f: false },
+  grom: { name: 'גרום', role: 'יד הברזל — המאמן', f: false },
 };
 
 const STATUS_NAMES = {
